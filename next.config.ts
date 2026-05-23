@@ -1,7 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  turbopack: {
+    watchOptions: {
+      ignored: ["**/supabase/data/**", "**/supabase/storage/**"],
+    },
+  },
 };
 
 export default nextConfig;
