@@ -9,8 +9,10 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { ExternalLink, ThumbsUp, ThumbsDown, X, ChevronLeft, ChevronRight } from "lucide-react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
+import { buildAgentUrl } from "@/lib/agents"
+import posthog from "posthog-js"
 
 interface ProductDetailProps {
   open: boolean
@@ -75,6 +77,23 @@ export function ProductDetailDialog({
   const title = item.custom_title || product.title || "Produkt"
   const accentColor = theme.primaryColor || "#6B7280"
   const supabase = createClient()
+  const [glCount, setGlCount] = useState(0)
+  const [rlCount, setRlCount] = useState(0)
+  const [voted, setVoted] = useState<"gl" | "rl" | null>(null)
+
+  useEffect(() => {
+    if (open) {
+      try {
+        posthog.capture("item_viewed", {
+          product_id: product.id,
+          creator_id: creatorId,
+          creator_slug: creatorSlug,
+          platform: product.platform,
+          title: title,
+        })
+      } catch {}
+    }
+  }, [open, product.id, creatorId, creatorSlug, product.platform, title])
 
   const handleCheckout = (agentId: string) => {
     try {
@@ -85,20 +104,38 @@ export function ProductDetailDialog({
       })
     } catch {}
 
+    try {
+      posthog.capture("click_out_to_agent", {
+        product_id: product.id,
+        agent_id: agentId,
+        creator_id: creatorId,
+        creator_slug: creatorSlug,
+        source_url: product.source_url,
+      })
+    } catch {}
+
     const affiliateCode = affiliateCodes[agentId] || ""
-    const encoded = encodeURIComponent(product.source_url)
-    let url = ""
-    switch (agentId) {
-      case "cnfans":
-        url = `https://cnfans.com/search/all?keyword=${encoded}${affiliateCode ? `&aff=${affiliateCode}` : ""}`
-        break
-      case "superbuy":
-        url = `https://superbuy.com/en/page/buy?url=${encoded}${affiliateCode ? `&tag=${affiliateCode}` : ""}`
-        break
-      default:
-        url = `https://${agentId}.com/item?url=${encoded}${affiliateCode ? `&aff=${affiliateCode}` : ""}`
-    }
+    const url = buildAgentUrl(product.source_url, agentId, affiliateCode)
     window.open(url, "_blank", "noopener,noreferrer")
+  }
+
+  const handleVote = (type: "gl" | "rl") => {
+    if (voted === type) return
+    if (type === "gl") {
+      setGlCount((c) => c + 1)
+      if (voted === "rl") setRlCount((c) => c - 1)
+    } else {
+      setRlCount((c) => c + 1)
+      if (voted === "gl") setGlCount((c) => c - 1)
+    }
+    setVoted(type)
+    try {
+      supabase.from("click_events").insert({
+        product_id: product.id,
+        creator_id: creatorId,
+        agent_id: type === "gl" ? "vote_gl" : "vote_rl",
+      })
+    } catch {}
   }
 
   return (
@@ -221,18 +258,20 @@ export function ProductDetailDialog({
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-7 gap-1 border-green-900 text-xs text-green-400 hover:bg-green-900/20 hover:text-green-300"
+                  className={`h-7 gap-1 text-xs transition-all ${voted === "gl" ? "border-green-500 bg-green-900/30 text-green-300" : "border-green-900 text-green-400 hover:bg-green-900/20 hover:text-green-300"}`}
+                  onClick={() => handleVote("gl")}
                 >
                   <ThumbsUp className="h-3 w-3" />
-                  GL
+                  GL{glCount > 0 ? ` (${glCount})` : ""}
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-7 gap-1 border-red-900 text-xs text-red-400 hover:bg-red-900/20 hover:text-red-300"
+                  className={`h-7 gap-1 text-xs transition-all ${voted === "rl" ? "border-red-500 bg-red-900/30 text-red-300" : "border-red-900 text-red-400 hover:bg-red-900/20 hover:text-red-300"}`}
+                  onClick={() => handleVote("rl")}
                 >
                   <ThumbsDown className="h-3 w-3" />
-                  RL
+                  RL{rlCount > 0 ? ` (${rlCount})` : ""}
                 </Button>
               </div>
             </div>

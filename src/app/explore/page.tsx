@@ -3,6 +3,8 @@ import { createAdminClient } from "@/lib/supabase/admin"
 import { ExploreGrid } from "@/components/explore/explore-grid"
 import { SearchBar } from "@/components/hub/search-bar"
 
+export const dynamic = "force-dynamic"
+
 export const metadata: Metadata = {
   title: "Explore – QCBase",
   description: "Entdecke die besten Proxy-Shopping Produkte aller Creators",
@@ -23,18 +25,47 @@ export default async function ExplorePage({
     .limit(100)
 
   const productMap = new Map<string, any>()
+  const imageMap = new Map<string, any[]>()
+  const creatorMap = new Map<string, string>()
+
   if ((allItems || []).length > 0) {
+    const productIds = [...new Set((allItems || []).map((i: any) => i.product_id))]
+    const creatorIds = [...new Set((allItems || []).map((i: any) => i.creator_id))]
+
+    // Fetch products
     const { data: products } = await admin
       .from("products")
       .select("id, source_url, normalized_url, platform, item_id, title, agent_cached_price, is_oos")
-      .limit(500)
+      .limit(1000)
     products?.forEach((p: any) => productMap.set(p.id, p))
+
+    // Fetch images for those products
+    if (productIds.length > 0) {
+      const { data: images } = await admin
+        .from("product_images")
+        .select("id, product_id, url, is_qc")
+        .limit(5000)
+      images?.forEach((img: any) => {
+        if (!imageMap.has(img.product_id)) imageMap.set(img.product_id, [])
+        imageMap.get(img.product_id)!.push(img)
+      })
+    }
+
+    // Fetch creator usernames
+    if (creatorIds.length > 0) {
+      const { data: profiles } = await admin
+        .from("profiles")
+        .select("id, username")
+        .limit(1000)
+      profiles?.forEach((p: any) => creatorMap.set(p.id, p.username || ""))
+    }
   }
 
   const items = (allItems || []).map((item: any) => ({
     ...item,
     product: productMap.get(item.product_id) || null,
-    images: [] as any[],
+    images: imageMap.get(item.product_id) || [],
+    creatorName: creatorMap.get(item.creator_id) || "",
     clickCount: 0,
   }))
 

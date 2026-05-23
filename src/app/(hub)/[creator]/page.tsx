@@ -5,6 +5,8 @@ import { ProductGrid } from "@/components/hub/product-grid"
 import { SearchBar } from "@/components/hub/search-bar"
 import { notFound } from "next/navigation"
 
+export const dynamic = "force-dynamic"
+
 interface CreatorHubPageProps {
   params: Promise<{ creator: string }>
   searchParams: Promise<{ q?: string; category?: string }>

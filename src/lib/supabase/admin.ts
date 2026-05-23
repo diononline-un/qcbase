@@ -7,6 +7,8 @@ function getSql() {
   if (!sql) {
     sql = postgres(process.env.DATABASE_URL || "postgresql://postgres:postgres@localhost:54322/postgres", {
       max: 5,
+      connect_timeout: 5,
+      idle_timeout: 10,
     })
   }
   return sql

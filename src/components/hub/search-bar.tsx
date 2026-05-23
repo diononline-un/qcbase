@@ -1,10 +1,11 @@
 "use client"
 
 import { useState, useCallback } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Input } from "@/components/ui/input"
 import { Search, X } from "lucide-react"
 import { cn } from "@/lib/utils"
+import posthog from "posthog-js"
 
 interface SearchBarProps {
   defaultValue?: string
@@ -20,8 +21,12 @@ export function SearchBar({ defaultValue = "", categories, selectedCategory, acc
   const debouncedSearch = useCallback(
     debounce((term: string) => {
       const params = new URLSearchParams(window.location.search)
-      if (term) params.set("q", term)
-      else params.delete("q")
+      if (term) {
+        params.set("q", term)
+        try { posthog.capture("search_query_entered", { query: term }) } catch {}
+      } else {
+        params.delete("q")
+      }
       if (selectedCategory) params.set("category", selectedCategory)
       router.push(`?${params.toString()}`)
     }, 300),

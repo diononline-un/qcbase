@@ -6,7 +6,7 @@ interface ExploreGridProps {
 
 export function ExploreGrid({ items }: ExploreGridProps) {
   return (
-    <div className="grid grid-cols-2 gap-2 md:gap-4 lg:grid-cols-4 xl:grid-cols-5">
+    <div className="grid grid-cols-2 gap-2 md:gap-4 lg:grid-cols-4">
       {items.map((item) => (
         <ExploreCard key={item.id} item={item} />
       ))}

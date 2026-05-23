@@ -10,7 +10,9 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { ExternalLink, ChevronDown, Store } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
+import { buildAgentUrl } from "@/lib/agents"
 import { useState } from "react"
+import posthog from "posthog-js"
 
 const AGENT_LIST = [
   { id: "litbuy", name: "LitBuy" },
@@ -48,19 +50,18 @@ export function AgentDropdown({ sourceUrl, productId, creatorId, creatorSlug, af
       })
     } catch {}
 
+    try {
+      posthog.capture("click_out_to_agent", {
+        product_id: productId,
+        agent_id: agentId,
+        creator_id: creatorId,
+        creator_slug: creatorSlug,
+        source_url: sourceUrl,
+      })
+    } catch {}
+
     const affiliateCode = affiliateCodes[agentId] || ""
-    const encoded = encodeURIComponent(sourceUrl)
-    let url = ""
-    switch (agentId) {
-      case "cnfans":
-        url = `https://cnfans.com/search/all?keyword=${encoded}${affiliateCode ? `&aff=${affiliateCode}` : ""}`
-        break
-      case "superbuy":
-        url = `https://superbuy.com/en/page/buy?url=${encoded}${affiliateCode ? `&tag=${affiliateCode}` : ""}`
-        break
-      default:
-        url = `https://${agentId}.com/item?url=${encoded}${affiliateCode ? `&aff=${affiliateCode}` : ""}`
-    }
+    const url = buildAgentUrl(sourceUrl, agentId, affiliateCode)
     window.open(url, "_blank", "noopener,noreferrer")
   }
 

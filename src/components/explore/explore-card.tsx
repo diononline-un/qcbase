@@ -1,9 +1,15 @@
+"use client"
+
 import { Badge } from "@/components/ui/badge"
+import { buildAgentUrl } from "@/lib/agents"
+import Link from "next/link"
 
 interface ExploreCardProps {
   item: {
     id: string
     category: string | null
+    creator_id?: string
+    creatorName?: string
     product: {
       id: string
       source_url: string
@@ -21,6 +27,8 @@ interface ExploreCardProps {
   }
 }
 
+const QCBASE_GTBUY_CODE = "PSKAK696A"
+
 export function ExploreCard({ item }: ExploreCardProps) {
   const product = item.product
   if (!product) return null
@@ -32,9 +40,7 @@ export function ExploreCard({ item }: ExploreCardProps) {
   const price = product.agent_cached_price
 
   const handleClick = () => {
-    // Use QCBase global referral - no creator affiliate
-    const encoded = encodeURIComponent(product.source_url)
-    const url = `https://gtbuy.com/item?url=${encoded}&inviteCode=PSKAK696A`
+    const url = buildAgentUrl(product.source_url, "gtbuy", QCBASE_GTBUY_CODE)
     window.open(url, "_blank", "noopener,noreferrer")
   }
 
@@ -95,9 +101,18 @@ export function ExploreCard({ item }: ExploreCardProps) {
       <div className="px-0.5 py-2">
         <p className="line-clamp-2 text-sm font-medium leading-tight">{title}</p>
         {price !== null && (
-          <p className="mt-1 font-mono text-sm text-muted-foreground">
+          <p className="mt-0.5 font-mono text-sm text-muted-foreground">
             ~{Number(price).toFixed(2).replace(".", ",")} €
           </p>
+        )}
+        {item.creatorName && (
+          <Link
+            href={`/${item.creatorName}`}
+            className="mt-0.5 inline-block font-mono text-[10px] text-muted-foreground hover:text-foreground"
+            onClick={(e) => e.stopPropagation()}
+          >
+            by @{item.creatorName}
+          </Link>
         )}
       </div>
     </div>

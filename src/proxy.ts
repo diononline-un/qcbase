@@ -3,94 +3,96 @@ import type { NextRequest } from "next/server"
 import { createAdminClient } from "@/lib/supabase/admin"
 
 export async function proxy(request: NextRequest) {
-  const { supabase } = await createSessionlessClient(request)
   const url = request.nextUrl
-  const host = request.headers.get("host") || ""
+  const rawHost = request.headers.get("host") || ""
+  const cleanHost = rawHost.split(":")[0].toLowerCase()
 
-  // Auth callback passthrough
-  if (url.pathname.startsWith("/auth") || url.pathname.startsWith("/api")) {
-    return NextResponse.next()
-  }
-
-  // Static assets passthrough
+  // Passthrough: static assets, API, auth, media
   if (
     url.pathname.startsWith("/_next") ||
+    url.pathname.startsWith("/api") ||
+    url.pathname.startsWith("/auth") ||
     url.pathname.startsWith("/favicon.ico") ||
-    url.pathname.match(/\.(ico|png|jpg|jpeg|svg|css|js|woff2?)$/)
+    url.pathname.match(/\.(ico|png|jpg|jpeg|svg|css|js|woff2?|webp|gif)$/)
   ) {
     return NextResponse.next()
   }
 
-  // Try to resolve creator from host
+  // Passthrough: known app routes
+  const APP_ROUTES = ["/login", "/explore"]
+  if (APP_ROUTES.includes(url.pathname)) {
+    return NextResponse.next()
+  }
+
   let creatorSlug: string | null = null
 
-  // 1. Check for ?creator= param (local dev fallback)
+  // 1. Dev fallback: ?creator= param
   const creatorParam = url.searchParams.get("creator")
   if (creatorParam) {
     creatorSlug = creatorParam
   }
 
-  // 2. Check subdomain or custom domain from host
-  if (!creatorSlug && host) {
-    const cleanHost = host.split(":")[0].toLowerCase()
+  // 2. Host-based routing: custom domain or subdomain
+  if (!creatorSlug && cleanHost !== "localhost" && cleanHost !== "127.0.0.1" && !cleanHost.startsWith("192.168.")) {
+    const admin = createAdminClient()
 
-    // Localhost with subdomain simulation via nip.io or similar
-    if (cleanHost === "localhost" || cleanHost === "127.0.0.1") {
-      // Fall back to ?creator= param on localhost
+    // Try exact custom_domain match first
+    const { data: customMatch } = await admin
+      .from("creator_settings")
+      .select("subdomain")
+      .eq("custom_domain", cleanHost)
+      .single()
+
+    if (customMatch?.subdomain) {
+      creatorSlug = customMatch.subdomain
     } else {
-      const admin = createAdminClient()
+      // Try subdomain match (e.g. creator.qcbase.site)
+      const parts = cleanHost.split(".")
+      if (parts.length >= 3) {
+        const potentialSubdomain = parts[0]
+        const { data: subMatch } = await admin
+          .from("creator_settings")
+          .select("subdomain")
+          .eq("subdomain", potentialSubdomain)
+          .single()
 
-      // First try exact custom_domain match
-      const { data: customMatch } = await admin
-        .from("creator_settings")
-        .select("creator_id, subdomain")
-        .eq("custom_domain", cleanHost)
-        .single()
-
-      if (customMatch) {
-        creatorSlug = customMatch.subdomain
-      } else {
-        // Try subdomain match (e.g. creator.qcbase.site)
-        const subdomainParts = cleanHost.split(".")
-        if (subdomainParts.length >= 3) {
-          const potentialSubdomain = subdomainParts[0]
-          const { data: subMatch } = await admin
-            .from("creator_settings")
-            .select("creator_id, subdomain")
-            .eq("subdomain", potentialSubdomain)
-            .single()
-
-          if (subMatch) {
-            creatorSlug = potentialSubdomain
-          }
+        if (subMatch) {
+          creatorSlug = potentialSubdomain
         }
       }
     }
   }
 
-  // Rewrite path if we have a creator
-  if (creatorSlug) {
-    const newUrl = new URL(`/${creatorSlug}${url.pathname}`, request.url)
-    url.searchParams.forEach((value, key) => {
-      if (key !== "creator") {
-        newUrl.searchParams.set(key, value)
+  // 3. Localhost: auto-resolve from URL path (e.g. /jzlin → creator jzlin)
+  //    This avoids needing ?creator= param on localhost
+  if (!creatorSlug && (cleanHost === "localhost" || cleanHost === "127.0.0.1")) {
+    const pathSegments = url.pathname.split("/").filter(Boolean)
+    if (pathSegments.length > 0) {
+      const potentialSlug = pathSegments[0].toLowerCase()
+      // Only if the path segment doesn't look like an app route
+      if (!APP_ROUTES.includes(`/${potentialSlug}`)) {
+        creatorSlug = potentialSlug
       }
+    }
+  }
+
+  // Rewrite if we have a creator
+  if (creatorSlug) {
+    const newPath = url.pathname.startsWith(`/${creatorSlug}`)
+      ? url.pathname.slice(creatorSlug.length + 1) || "/"
+      : url.pathname
+
+    const newUrl = new URL(`/${creatorSlug}${newPath}`, request.url)
+    url.searchParams.forEach((value, key) => {
+      if (key !== "creator") newUrl.searchParams.set(key, value)
     })
+
     const response = NextResponse.rewrite(newUrl)
     response.headers.set("x-creator-slug", creatorSlug)
     return response
   }
 
   return NextResponse.next()
-}
-
-async function createSessionlessClient(request: NextRequest) {
-  const { createClient } = await import("@supabase/supabase-js")
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
-  return { supabase }
 }
 
 export const config = {
