@@ -34,9 +34,10 @@ interface ProductCardProps {
     primaryColor?: string
     backgroundColor?: string
   }
+  tier?: string
 }
 
-export function ProductCard({ item, creatorId, creatorSlug, affiliateCodes, theme }: ProductCardProps) {
+export function ProductCard({ item, creatorId, creatorSlug, affiliateCodes, theme, tier }: ProductCardProps) {
   const [detailOpen, setDetailOpen] = useState(false)
   const product = item.product
   if (!product) return null
@@ -135,6 +136,7 @@ export function ProductCard({ item, creatorId, creatorSlug, affiliateCodes, them
         creatorSlug={creatorSlug}
         affiliateCodes={affiliateCodes}
         theme={theme}
+        tier={tier}
       />
     </>
   )

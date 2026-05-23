@@ -45,6 +45,7 @@ interface ProductDetailProps {
     primaryColor?: string
     backgroundColor?: string
   }
+  tier?: string
 }
 
 const AGENT_LIST = [
@@ -63,9 +64,12 @@ const AGENT_LIST = [
 
 export function ProductDetailDialog({
   open, onOpenChange, item, creatorId, creatorSlug, affiliateCodes, theme,
+  tier = "free",
 }: ProductDetailProps) {
   const product = item.product
   if (!product) return null
+
+  const availableAgents = tier === "free" ? AGENT_LIST.slice(0, 1) : AGENT_LIST
 
   const images = item.images || []
   const qcImages = images.filter((img) => img.is_qc)
@@ -282,7 +286,7 @@ export function ProductDetailDialog({
                 Checkout via Agent
               </p>
               <div className="grid grid-cols-2 gap-2">
-                {AGENT_LIST.map((agent) => (
+                {availableAgents.map((agent) => (
                   <Button
                     key={agent.id}
                     variant="outline"

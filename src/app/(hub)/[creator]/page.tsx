@@ -121,13 +121,14 @@ export default async function CreatorHubPage({ params, searchParams }: CreatorHu
               </p>
             </div>
           ) : (
-            <ProductGrid
-              items={filteredItems}
-              creatorId={profile.id}
-              creatorSlug={creatorSlug}
-              affiliateCodes={affiliateCodes}
-              theme={theme}
-            />
+              <ProductGrid
+                items={filteredItems}
+                creatorId={profile.id}
+                creatorSlug={creatorSlug}
+                affiliateCodes={affiliateCodes}
+                theme={theme}
+                tier={profile.tier}
+              />
           )}
         </div>
       </div>

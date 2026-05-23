@@ -35,11 +35,15 @@ interface AgentDropdownProps {
   creatorSlug: string
   affiliateCodes: Record<string, string>
   accentColor?: string
+  tier?: string
 }
 
-export function AgentDropdown({ sourceUrl, productId, creatorId, creatorSlug, affiliateCodes, accentColor }: AgentDropdownProps) {
+export function AgentDropdown({ sourceUrl, productId, creatorId, creatorSlug, affiliateCodes, accentColor, tier = "free" }: AgentDropdownProps) {
   const [open, setOpen] = useState(false)
   const supabase = createClient()
+
+  // Free tier: only show first agent (standard checkout)
+  const availableAgents = tier === "free" ? AGENT_LIST.slice(0, 1) : AGENT_LIST
 
   const handleAgentClick = async (agentId: string) => {
     try {
@@ -80,7 +84,7 @@ export function AgentDropdown({ sourceUrl, productId, creatorId, creatorSlug, af
       <DropdownMenuContent align="end" className="w-48">
         <DropdownMenuLabel className="text-xs">Wähle einen Agenten</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        {AGENT_LIST.map((agent) => (
+        {availableAgents.map((agent) => (
           <DropdownMenuItem
             key={agent.id}
             onClick={() => handleAgentClick(agent.id)}
