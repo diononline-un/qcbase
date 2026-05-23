@@ -12,151 +12,169 @@ function getSql() {
   return sql
 }
 
+function cols(s: string): string {
+  return s.split(",").map((c) => `"${c.trim()}"`).join(", ")
+}
+
+function esc(v: any): string {
+  if (v === null || v === undefined) return "NULL"
+  if (typeof v === "boolean") return v ? "true" : "false"
+  if (typeof v === "number") return String(v)
+  return `'${String(v).replace(/'/g, "''")}'`
+}
+
+function ident(s: string): string {
+  return `"${s}"`
+}
+
+function buildUpdateSet(data: Record<string, any>): string {
+  return Object.entries(data)
+    .map(([k, v]) => `${ident(k)} = ${esc(v)}`)
+    .join(", ")
+}
+
+async function query(sqlClient: ReturnType<typeof postgres>, sqlStr: string): Promise<any[]> {
+  return sqlClient.unsafe(sqlStr)
+}
+
 // Direct Postgres query helper for local dev when Supabase API is unavailable
 function wrapSql(sqlClient: ReturnType<typeof postgres>) {
   return {
     from: (table: string) => ({
       select: (columns: string) => ({
-        eq: (col: string, val: string) => ({
+        eq: (col: string, val_: string) => ({
           single: async () => {
-            const rows = await sqlClient`SELECT ${sqlClient(columns)} FROM ${sqlClient(table)} WHERE ${sqlClient(col)} = ${val} LIMIT 1`
+            const rows = await query(sqlClient, `SELECT ${cols(columns)} FROM ${ident(table)} WHERE ${ident(col)} = ${esc(val_)} LIMIT 1`)
             return { data: rows[0] || null, error: null }
           },
-          order: (col: string, opts: { ascending: boolean }) => ({
+          order: (col2: string, opts: { ascending: boolean }) => ({
             limit: (n: number) => ({
               then: async (resolve: any) => {
                 const dir = opts.ascending ? "ASC" : "DESC"
-                const rows = await sqlClient`SELECT ${sqlClient(columns)} FROM ${sqlClient(table)} WHERE ${sqlClient(col)} = ${val} ORDER BY ${sqlClient(col)} ${sqlClient(dir)} LIMIT ${n}`
+                const rows = await query(sqlClient, `SELECT ${cols(columns)} FROM ${ident(table)} WHERE ${ident(col)} = ${esc(val_)} ORDER BY ${ident(col2)} ${dir} LIMIT ${n}`)
                 resolve({ data: rows, error: null })
               }
             }),
-            async then(resolve: any) {
+            order: (col3: string, opts2: { ascending: boolean }) => ({
+              limit: (n: number) => ({
+                then: async (resolve: any) => {
+                  const dir = opts.ascending ? "ASC" : "DESC"
+                  const dir2 = opts2.ascending ? "ASC" : "DESC"
+                  const rows = await query(sqlClient, `SELECT ${cols(columns)} FROM ${ident(table)} WHERE ${ident(col)} = ${esc(val_)} ORDER BY ${ident(col2)} ${dir}, ${ident(col3)} ${dir2} LIMIT ${n}`)
+                  resolve({ data: rows, error: null })
+                }
+              }),
+              then: async (resolve: any) => {
+                const dir = opts.ascending ? "ASC" : "DESC"
+                const dir2 = opts2.ascending ? "ASC" : "DESC"
+                const rows = await query(sqlClient, `SELECT ${cols(columns)} FROM ${ident(table)} WHERE ${ident(col)} = ${esc(val_)} ORDER BY ${ident(col2)} ${dir}, ${ident(col3)} ${dir2}`)
+                resolve({ data: rows, error: null, count: rows.length })
+              }
+            }),
+            then: async (resolve: any) => {
               const dir = opts.ascending ? "ASC" : "DESC"
-              const rows = await sqlClient`SELECT ${sqlClient(columns)} FROM ${sqlClient(table)} WHERE ${sqlClient(col)} = ${val} ORDER BY ${sqlClient(col)} ${dir}`
-              resolve({ data: rows, error: null })
-            }
-          }),
-          select: (cols: string) => ({
-            single: async () => {
-              const rows = await sqlClient`SELECT ${sqlClient(cols)} FROM ${sqlClient(table)} WHERE ${sqlClient(col)} = ${val} LIMIT 1`
-              return { data: rows[0] || null, error: null, count: rows.length }
-            },
-            async then(resolve: any) {
-              const rows = await sqlClient`SELECT ${sqlClient(cols)} FROM ${sqlClient(table)} WHERE ${sqlClient(col)} = ${val}`
+              const rows = await query(sqlClient, `SELECT ${cols(columns)} FROM ${ident(table)} WHERE ${ident(col)} = ${esc(val_)} ORDER BY ${ident(col2)} ${dir}`)
               resolve({ data: rows, error: null, count: rows.length })
             }
           }),
-          async then(resolve: any) {
-            const rows = await sqlClient`SELECT ${sqlClient(columns)} FROM ${sqlClient(table)} WHERE ${sqlClient(col)} = ${val}`
+          select: (cols2: string) => ({
+            single: async () => {
+              const rows = await query(sqlClient, `SELECT ${cols(cols2)} FROM ${ident(table)} WHERE ${ident(col)} = ${esc(val_)} LIMIT 1`)
+              return { data: rows[0] || null, error: null, count: rows.length }
+            },
+            then: async (resolve: any) => {
+              const rows = await query(sqlClient, `SELECT ${cols(cols2)} FROM ${ident(table)} WHERE ${ident(col)} = ${esc(val_)}`)
+              resolve({ data: rows, error: null, count: rows.length })
+            }
+          }),
+          then: async (resolve: any) => {
+            const rows = await query(sqlClient, `SELECT ${cols(columns)} FROM ${ident(table)} WHERE ${ident(col)} = ${esc(val_)}`)
             resolve({ data: rows, error: null, count: rows.length })
           }
         }),
-        ilike: (col: string, val: string) => ({
+        ilike: (col: string, val_: string) => ({
           limit: (n: number) => ({
-            async then(resolve: any) {
-              const rows = await sqlClient`SELECT ${sqlClient(columns)} FROM ${sqlClient(table)} WHERE ${sqlClient(col)} ILIKE ${val} LIMIT ${n}`
+            then: async (resolve: any) => {
+              const rows = await query(sqlClient, `SELECT ${cols(columns)} FROM ${ident(table)} WHERE ${ident(col)} ILIKE ${esc(val_)} LIMIT ${n}`)
               resolve({ data: rows, error: null })
             }
           })
         }),
-        or: (condition: string) => ({
-          range: (from: number, to: number) => ({
-            order: (col: string, opts: { ascending: boolean }) => ({
-              order: (col2: string, opts2: { ascending: boolean }) => ({
-                async then(resolve: any) {
-                  const rows = await sqlClient`SELECT ${sqlClient(columns)} FROM ${sqlClient(table)} WHERE ${sqlClient(condition)} ORDER BY ${sqlClient(col)} ${opts.ascending ? 'ASC' : 'DESC'}, ${sqlClient(col2)} ${opts2.ascending ? 'ASC' : 'DESC'} LIMIT ${to - from + 1} OFFSET ${from}`
-                  resolve({ data: rows, error: null, count: rows.length })
-                }
-              })
-            })
-          })
-        }),
-        order: (col: string, opts: { ascending: boolean }) => ({
-          order: (col2: string, opts2: { ascending: boolean }) => ({
+        order: (col2: string, opts: { ascending: boolean }) => ({
+          limit: (n: number) => ({
+            then: async (resolve: any) => {
+              const rows = await query(sqlClient, `SELECT ${cols(columns)} FROM ${ident(table)} ORDER BY ${ident(col2)} ${opts.ascending ? "ASC" : "DESC"} LIMIT ${n}`)
+              resolve({ data: rows, error: null, count: rows.length })
+            }
+          }),
+          order: (col3: string, opts2: { ascending: boolean }) => ({
             limit: (n: number) => ({
-              async then(resolve: any) {
-                const rows = await sqlClient`SELECT ${sqlClient(columns)} FROM ${sqlClient(table)} ORDER BY ${sqlClient(col)} ${opts.ascending ? 'ASC' : 'DESC'}, ${sqlClient(col2)} ${opts2.ascending ? 'ASC' : 'DESC'} LIMIT ${n}`
+              then: async (resolve: any) => {
+                const rows = await query(sqlClient, `SELECT ${cols(columns)} FROM ${ident(table)} ORDER BY ${ident(col2)} ${opts.ascending ? "ASC" : "DESC"}, ${ident(col3)} ${opts2.ascending ? "ASC" : "DESC"} LIMIT ${n}`)
                 resolve({ data: rows, error: null, count: rows.length })
               }
             }),
             range: (from: number, to: number) => ({
-              async then(resolve: any) {
-                const rows = await sqlClient`SELECT ${sqlClient(columns)} FROM ${sqlClient(table)} ORDER BY ${sqlClient(col)} ${opts.ascending ? 'ASC' : 'DESC'}, ${sqlClient(col2)} ${opts2.ascending ? 'ASC' : 'DESC'} LIMIT ${to - from + 1} OFFSET ${from}`
+              then: async (resolve: any) => {
+                const rows = await query(sqlClient, `SELECT ${cols(columns)} FROM ${ident(table)} ORDER BY ${ident(col2)} ${opts.ascending ? "ASC" : "DESC"}, ${ident(col3)} ${opts2.ascending ? "ASC" : "DESC"} LIMIT ${to - from + 1} OFFSET ${from}`)
                 resolve({ data: rows, error: null, count: rows.length })
               }
             }),
-            async then(resolve: any) {
-              const rows = await sqlClient`SELECT ${sqlClient(columns)} FROM ${sqlClient(table)} ORDER BY ${sqlClient(col)} ${opts.ascending ? 'ASC' : 'DESC'}, ${sqlClient(col2)} ${opts2.ascending ? 'ASC' : 'DESC'}`
+            then: async (resolve: any) => {
+              const rows = await query(sqlClient, `SELECT ${cols(columns)} FROM ${ident(table)} ORDER BY ${ident(col2)} ${opts.ascending ? "ASC" : "DESC"}, ${ident(col3)} ${opts2.ascending ? "ASC" : "DESC"}`)
               resolve({ data: rows, error: null, count: rows.length })
             }
           })
         }),
         limit: (n: number) => ({
-          async then(resolve: any) {
-            const rows = await sqlClient`SELECT ${sqlClient(columns)} FROM ${sqlClient(table)} LIMIT ${n}`
+          then: async (resolve: any) => {
+            const rows = await query(sqlClient, `SELECT ${cols(columns)} FROM ${ident(table)} LIMIT ${n}`)
             resolve({ data: rows, error: null, count: rows.length })
           }
         }),
-        async then(resolve: any) {
-          const rows = await sqlClient`SELECT ${sqlClient(columns)} FROM ${sqlClient(table)}`
+        then: async (resolve: any) => {
+          const rows = await query(sqlClient, `SELECT ${cols(columns)} FROM ${ident(table)}`)
           resolve({ data: rows, error: null, count: rows.length })
         }
       }),
       insert: (data: any | any[]) => ({
-        select: (cols: string) => ({
+        select: (cols_: string) => ({
           single: async () => {
             const items = Array.isArray(data) ? data : [data]
             const cols_arr = Object.keys(items[0])
-            // Use raw SQL insert
-            const vals_list = items.map((item: any) => {
-              const vals = cols_arr.map((c: string) => {
-                const v = item[c]
-                if (v === null || v === undefined) return 'NULL'
-                if (typeof v === 'boolean') return v ? 'true' : 'false'
-                return `'${String(v).replace(/'/g, "''")}'`
-              })
-              return `(${vals.join(', ')})`
-            })
-            const sql_str = `INSERT INTO ${table} (${cols_arr.join(', ')}) VALUES ${vals_list.join(', ')} RETURNING ${cols}`
-            const rows = await sqlClient.unsafe(sql_str)
+            const vals_list = items.map((item: any) => `(${cols_arr.map((c: string) => esc(item[c])).join(", ")})`).join(", ")
+            const sqlStr = `INSERT INTO ${ident(table)} (${cols(cols_arr.join(", "))}) VALUES ${vals_list} RETURNING ${cols(cols_)}`
+            const rows = await query(sqlClient, sqlStr)
             return { data: rows[0], error: null }
           }
         })
       }),
       update: (data: any) => ({
-        eq: (col: string, val: string) => ({
-          async then(resolve: any) {
-            const sets = Object.entries(data).map(([k, v]) => {
-              if (v === null || v === undefined) return `${sqlClient(k)} = NULL`
-              if (typeof v === 'boolean') return `${sqlClient(k)} = ${v}`
-              if (typeof v === 'number') return `${sqlClient(k)} = ${v}`
-              return `${sqlClient(k)} = '${String(v).replace(/'/g, "''")}'`
-            })
-            await sqlClient.unsafe(`UPDATE ${table} SET ${sets.join(', ')} WHERE ${sqlClient(col)} = '${val}'`)
+        eq: (col: string, val_: string) => ({
+          then: async (resolve: any) => {
+            await query(sqlClient, `UPDATE ${ident(table)} SET ${buildUpdateSet(data)} WHERE ${ident(col)} = ${esc(val_)}`)
             resolve({ error: null })
           }
         })
       }),
       upsert: (data: any, opts?: any) => ({
-        async then(resolve: any) {
-          const cols = Object.keys(data)
-          const vals = cols.map((c: string) => {
-            const v = data[c]
-            if (v === null || v === undefined) return 'NULL'
-            if (typeof v === 'boolean') return v ? 'true' : 'false'
-            if (typeof v === 'number') return String(v)
-            return `'${String(v).replace(/'/g, "''")}'`
-          })
-          const conflict = opts?.onConflict || ''
-          const conflict_clause = conflict ? ` ON CONFLICT (${sqlClient(conflict)}) DO UPDATE SET ${cols.map((c: string) => `${sqlClient(c)} = EXCLUDED.${sqlClient(c)}`).join(', ')}` : ''
-          await sqlClient.unsafe(`INSERT INTO ${table} (${cols.map(c => sqlClient(c)).join(', ')}) VALUES (${vals.join(', ')})${conflict_clause}`)
+        then: async (resolve: any) => {
+          const cols_arr = Object.keys(data)
+          const vals = cols_arr.map((c: string) => esc(data[c])).join(", ")
+          let sqlStr = `INSERT INTO ${ident(table)} (${cols(cols_arr.join(", "))}) VALUES (${vals})`
+          if (opts?.onConflict) {
+            const conflictCols = opts.onConflict.split(",").map((c: string) => ident(c.trim())).join(", ")
+            const updates = cols_arr.map((c: string) => `${ident(c)} = EXCLUDED.${ident(c)}`).join(", ")
+            sqlStr += ` ON CONFLICT (${conflictCols}) DO UPDATE SET ${updates}`
+          }
+          await query(sqlClient, sqlStr)
           resolve({ error: null })
         }
       }),
       delete: () => ({
-        eq: (col: string, val: string) => ({
-          async then(resolve: any) {
-            await sqlClient`DELETE FROM ${sqlClient(table)} WHERE ${sqlClient(col)} = ${val}`
+        eq: (col: string, val_: string) => ({
+          then: async (resolve: any) => {
+            await query(sqlClient, `DELETE FROM ${ident(table)} WHERE ${ident(col)} = ${esc(val_)}`)
             resolve({ error: null })
           }
         })
@@ -167,12 +185,11 @@ function wrapSql(sqlClient: ReturnType<typeof postgres>) {
 
 export function createAdminClient() {
   const dbUrl = process.env.DATABASE_URL
-  
+
   // Use direct postgres connection for local dev
   if (dbUrl) {
     const s = getSql()
     const wrapped: any = wrapSql(s)
-    // Add auth stub for server components that check auth
     wrapped.auth = {
       getUser: async () => ({ data: { user: null }, error: null }),
       getSession: async () => ({ data: { session: null }, error: null }),
@@ -180,7 +197,7 @@ export function createAdminClient() {
     }
     return wrapped
   }
-  
+
   // Use Supabase API when available
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
   return createClient(

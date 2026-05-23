@@ -96,7 +96,7 @@ export function ExploreCard({ item }: ExploreCardProps) {
         <p className="line-clamp-2 text-sm font-medium leading-tight">{title}</p>
         {price !== null && (
           <p className="mt-1 font-mono text-sm text-muted-foreground">
-            ~{price.toFixed(2).replace(".", ",")} €
+            ~{Number(price).toFixed(2).replace(".", ",")} €
           </p>
         )}
       </div>

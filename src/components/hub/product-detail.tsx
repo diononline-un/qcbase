@@ -172,7 +172,7 @@ export function ProductDetailDialog({
               {/* Price */}
               {product.agent_cached_price !== null && (
                 <p className="mt-1 font-mono text-xl font-bold text-white">
-                  €{product.agent_cached_price.toFixed(2).replace(".", ",")}
+                  €{Number(product.agent_cached_price).toFixed(2).replace(".", ",")}
                 </p>
               )}
 

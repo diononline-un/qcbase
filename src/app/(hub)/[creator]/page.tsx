@@ -42,24 +42,28 @@ export default async function CreatorHubPage({ params, searchParams }: CreatorHu
 
   const { data: creatorItems } = await admin
     .from("creator_items")
-    .select(`
-      id, category, custom_title, sort_order, is_pinned,
-      product:product_id (
-        id, source_url, normalized_url, platform, item_id,
-        title, agent_cached_price, is_oos
-      ),
-      images:product_images (
-        id, url, is_qc
-      )
-    `)
+    .select("id, category, custom_title, sort_order, is_pinned, product_id")
     .eq("creator_id", settings.creator_id)
     .order("is_pinned", { ascending: false })
     .order("sort_order", { ascending: true })
 
+  // Build product and image lookup maps
+  const { data: allProducts } = await admin.from("products").select("id, source_url, normalized_url, platform, item_id, title, agent_cached_price, is_oos")
+  const { data: allImages } = await admin.from("product_images").select("id, product_id, url, is_qc")
+
+  const productMap = new Map<string, any>()
+  allProducts?.forEach((p: any) => productMap.set(p.id, p))
+
+  const imageMap = new Map<string, any[]>()
+  allImages?.forEach((img: any) => {
+    if (!imageMap.has(img.product_id)) imageMap.set(img.product_id, [])
+    imageMap.get(img.product_id)!.push(img)
+  })
+
   const items = (creatorItems || []).map((item: any) => ({
     ...item,
-    product: item.product || null,
-    images: item.images || [],
+    product: productMap.get(item.product_id) || null,
+    images: imageMap.get(item.product_id) || [],
   }))
 
   let filteredItems = items

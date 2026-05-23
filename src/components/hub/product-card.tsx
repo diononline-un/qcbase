@@ -48,7 +48,7 @@ export function ProductCard({ item, creatorId, creatorSlug, affiliateCodes, them
   const price = product.agent_cached_price
 
   const formattedPrice = price !== null
-    ? `${price.toFixed(2).replace(".", ",")} €`
+    ? `${Number(price).toFixed(2).replace(".", ",")} €`
     : null
 
   return (
