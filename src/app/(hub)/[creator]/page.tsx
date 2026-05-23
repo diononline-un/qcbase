@@ -30,9 +30,7 @@ export default async function CreatorHubPage({ params, searchParams }: CreatorHu
     .eq("subdomain", creatorSlug)
     .single()
 
-  if (!settings) {
-    notFound()
-  }
+  if (!settings) notFound()
 
   const { data: profile } = await admin
     .from("profiles")
@@ -40,9 +38,7 @@ export default async function CreatorHubPage({ params, searchParams }: CreatorHu
     .eq("id", settings.creator_id)
     .single()
 
-  if (!profile) {
-    notFound()
-  }
+  if (!profile) notFound()
 
   const { data: creatorItems } = await admin
     .from("creator_items")
@@ -66,7 +62,6 @@ export default async function CreatorHubPage({ params, searchParams }: CreatorHu
     images: item.images || [],
   }))
 
-  // Filter by search query
   let filteredItems = items
   if (q) {
     const query = q.toLowerCase()
@@ -83,14 +78,20 @@ export default async function CreatorHubPage({ params, searchParams }: CreatorHu
     )
   }
 
-  // Get unique categories
   const categories = [...new Set(items.map((i: any) => i.category).filter(Boolean))] as string[]
 
   const theme = (settings.theme as any) || {}
   const affiliateCodes = (settings.affiliate_codes as Record<string, string>) || {}
+  const accentColor = theme.primaryColor || "#6B7280"
 
   return (
-    <div className="min-h-screen bg-background">
+    <div
+      className="min-h-screen bg-background"
+      style={{
+        ["--creator-accent" as any]: accentColor,
+        ["--creator-accent-foreground" as any]: "#ffffff",
+      }}
+    >
       <CreatorBanner
         creator={profile}
         settings={settings}
@@ -101,6 +102,7 @@ export default async function CreatorHubPage({ params, searchParams }: CreatorHu
           defaultValue={q}
           categories={categories}
           selectedCategory={category}
+          accentColor={accentColor}
         />
         <div className="mt-8">
           {filteredItems.length === 0 ? (

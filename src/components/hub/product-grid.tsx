@@ -13,7 +13,7 @@ interface ProductGridProps {
 
 export function ProductGrid({ items, creatorId, creatorSlug, affiliateCodes, theme }: ProductGridProps) {
   return (
-    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+    <div className="grid grid-cols-2 gap-2 md:gap-4 lg:grid-cols-4 xl:grid-cols-5">
       {items.map((item) => (
         <ProductCard
           key={item.id}

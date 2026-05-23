@@ -41,51 +41,36 @@ export function AgentDropdown({ sourceUrl, productId, creatorId, creatorSlug, af
 
   const handleAgentClick = async (agentId: string) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-
       await supabase.from("click_events").insert({
         product_id: productId,
         creator_id: creatorId,
         agent_id: agentId,
       })
-    } catch {
-      // silently fail tracking
-    }
+    } catch {}
 
     const affiliateCode = affiliateCodes[agentId] || ""
-    const encodedUrl = encodeURIComponent(sourceUrl)
-    const agentUrl = buildAgentUrl(agentId, sourceUrl, affiliateCode)
-
-    window.open(agentUrl, "_blank", "noopener,noreferrer")
-  }
-
-  function buildAgentUrl(agentId: string, sourceUrl: string, affiliateCode: string): string {
     const encoded = encodeURIComponent(sourceUrl)
+    let url = ""
     switch (agentId) {
-      case "mulebuy":
-      case "litbuy":
-      case "oopbuy":
-      case "hipobuy":
-      case "acbuy":
-      case "gtbuy":
-      case "usfans":
-      case "kakobuy":
-      case "cssbuy":
-      case "lovegobuy":
-        return `https://${agentId}.com/item?url=${encoded}${affiliateCode ? `&aff=${affiliateCode}` : ""}`
       case "cnfans":
-        return `https://cnfans.com/search/all?keyword=${encoded}${affiliateCode ? `&aff=${affiliateCode}` : ""}`
+        url = `https://cnfans.com/search/all?keyword=${encoded}${affiliateCode ? `&aff=${affiliateCode}` : ""}`
+        break
       case "superbuy":
-        return `https://superbuy.com/en/page/buy?url=${encoded}${affiliateCode ? `&tag=${affiliateCode}` : ""}`
+        url = `https://superbuy.com/en/page/buy?url=${encoded}${affiliateCode ? `&tag=${affiliateCode}` : ""}`
+        break
       default:
-        return `https://${agentId}.com/item?url=${encoded}`
+        url = `https://${agentId}.com/item?url=${encoded}${affiliateCode ? `&aff=${affiliateCode}` : ""}`
     }
+    window.open(url, "_blank", "noopener,noreferrer")
   }
 
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
-      <DropdownMenuTrigger className="inline-flex w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-xs shadow-sm hover:bg-accent hover:text-accent-foreground">
-        <span className="inline-flex items-center gap-1">
+      <DropdownMenuTrigger
+        className="inline-flex w-full items-center justify-between rounded-md border border-zinc-200 bg-background px-3 py-2 text-xs transition-colors hover:border-zinc-400 dark:border-zinc-800 dark:hover:border-zinc-600"
+        style={{ borderColor: accentColor ? `${accentColor}40` : undefined }}
+      >
+        <span className="inline-flex items-center gap-1 text-muted-foreground">
           <Store className="h-3 w-3" />
           Agent wählen
         </span>

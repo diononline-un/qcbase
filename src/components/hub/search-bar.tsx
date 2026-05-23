@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useCallback } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { Input } from "@/components/ui/input"
 import { Search, X } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -10,23 +10,19 @@ interface SearchBarProps {
   defaultValue?: string
   categories: string[]
   selectedCategory?: string
+  accentColor?: string
 }
 
-export function SearchBar({ defaultValue = "", categories, selectedCategory }: SearchBarProps) {
+export function SearchBar({ defaultValue = "", categories, selectedCategory, accentColor }: SearchBarProps) {
   const router = useRouter()
   const [value, setValue] = useState(defaultValue)
 
   const debouncedSearch = useCallback(
     debounce((term: string) => {
       const params = new URLSearchParams(window.location.search)
-      if (term) {
-        params.set("q", term)
-      } else {
-        params.delete("q")
-      }
-      if (selectedCategory) {
-        params.set("category", selectedCategory)
-      }
+      if (term) params.set("q", term)
+      else params.delete("q")
+      if (selectedCategory) params.set("category", selectedCategory)
       router.push(`?${params.toString()}`)
     }, 300),
     [selectedCategory, router]
@@ -37,18 +33,10 @@ export function SearchBar({ defaultValue = "", categories, selectedCategory }: S
     debouncedSearch(e.target.value)
   }
 
-  const handleClear = () => {
-    setValue("")
-    debouncedSearch("")
-  }
-
   const selectCategory = (cat: string | null) => {
     const params = new URLSearchParams(window.location.search)
-    if (cat) {
-      params.set("category", cat)
-    } else {
-      params.delete("category")
-    }
+    if (cat) params.set("category", cat)
+    else params.delete("category")
     if (value) params.set("q", value)
     router.push(`?${params.toString()}`)
   }
@@ -61,11 +49,11 @@ export function SearchBar({ defaultValue = "", categories, selectedCategory }: S
           placeholder="Produkte suchen..."
           value={value}
           onChange={handleChange}
-          className="pl-10 pr-10"
+          className="pl-10 pr-10 border-zinc-200 dark:border-zinc-800"
         />
         {value && (
           <button
-            onClick={handleClear}
+            onClick={() => { setValue(""); debouncedSearch("") }}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
           >
             <X className="h-4 w-4" />
@@ -79,9 +67,10 @@ export function SearchBar({ defaultValue = "", categories, selectedCategory }: S
             className={cn(
               "rounded-full px-3 py-1 text-xs font-medium transition-colors",
               !selectedCategory
-                ? "bg-primary text-primary-foreground"
+                ? "text-white"
                 : "bg-muted text-muted-foreground hover:bg-muted/80"
             )}
+            style={!selectedCategory ? { backgroundColor: accentColor || "#6B7280" } : undefined}
           >
             Alle
           </button>
@@ -92,9 +81,10 @@ export function SearchBar({ defaultValue = "", categories, selectedCategory }: S
               className={cn(
                 "rounded-full px-3 py-1 text-xs font-medium transition-colors",
                 selectedCategory === cat
-                  ? "bg-primary text-primary-foreground"
+                  ? "text-white"
                   : "bg-muted text-muted-foreground hover:bg-muted/80"
               )}
+              style={selectedCategory === cat ? { backgroundColor: accentColor || "#6B7280" } : undefined}
             >
               {cat}
             </button>

@@ -1,5 +1,5 @@
 export interface ParsedLink {
-  platform: "weidian" | "taobao" | "1688" | "unknown"
+  platform: "weidian" | "taobao" | "1688" | "dhgate" | "unknown"
   itemId: string | null
   normalizedUrl: string
   originalUrl: string
@@ -37,6 +37,14 @@ export const PATTERNS = {
       /1688\.com\/offer\/(\d+)\.html/i,
     ],
     domain: /1688\.com/i,
+  },
+  dhgate: {
+    itemId: [
+      /sale\.dhgate\.com\/([A-Za-z0-9]+)/i,
+      /dhgate\.com\/product\/([^/]+)/i,
+      /m\.dhgate\.com\/product\/([^/]+)/i,
+    ],
+    domain: /dhgate\.com/i,
   },
   pandabuy: {
     encodedUrl: [
@@ -107,6 +115,17 @@ export function parseSourceUrl(url: string): ParsedLink | null {
       if (itemId) {
         result.itemId = itemId
         result.normalizedUrl = `1688:${itemId}`
+      }
+      return result
+    }
+
+    // DHGate
+    if (PATTERNS.dhgate.domain.test(decoded)) {
+      const itemId = tryPatterns(decoded, PATTERNS.dhgate.itemId)
+      result.platform = "dhgate"
+      if (itemId) {
+        result.itemId = itemId
+        result.normalizedUrl = `dhgate:${itemId}`
       }
       return result
     }
