@@ -13,7 +13,7 @@ export interface AgentConfig {
 }
 
 export interface ParsedLink {
-  platform: "weidian" | "taobao" | "1688" | "unknown"
+  platform: "weidian" | "taobao" | "1688" | "dhgate" | "unknown"
   itemId: string | null
   normalizedUrl: string
   originalUrl: string

@@ -48,6 +48,15 @@ describe("parseSourceUrl", () => {
     })
   })
 
+  describe("Dhgate", () => {
+    it("parses sale.dhgate.com URL", () => {
+      const result = parseSourceUrl("https://sale.dhgate.com/xiB8Qp85")
+      expect(result?.platform).toBe("dhgate")
+      expect(result?.itemId).toBe("xiB8Qp85")
+      expect(result?.normalizedUrl).toBe("dhgate:xiB8Qp85")
+    })
+  })
+
   describe("Unknown", () => {
     it("returns unknown for unrecognized URLs", () => {
       const result = parseSourceUrl("https://example.com/product/123")
