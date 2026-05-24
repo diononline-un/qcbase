@@ -1,9 +1,8 @@
 import type { Metadata } from "next"
 import { createAdminClient } from "@/lib/supabase/admin"
-import { CreatorBanner } from "@/components/hub/creator-banner"
 import { ProductGrid } from "@/components/hub/product-grid"
-import { SearchBar } from "@/components/hub/search-bar"
 import { notFound } from "next/navigation"
+import { CreatorHubHeader } from "@/components/hub/creator-hub-header"
 
 export const dynamic = "force-dynamic"
 
@@ -14,21 +13,17 @@ interface CreatorHubPageProps {
 
 export async function generateMetadata({ params }: CreatorHubPageProps): Promise<Metadata> {
   const { creator } = await params
-  return {
-    title: `${creator} – QCBase`,
-    description: `${creator}s Proxy-Shopping Hub – Finde die besten Deals`,
-  }
+  return { title: `${creator} – QCBase`, description: `${creator}s Proxy-Shopping Hub` }
 }
 
 export default async function CreatorHubPage({ params, searchParams }: CreatorHubPageProps) {
   const { creator: creatorSlug } = await params
   const { q, category } = await searchParams
-
   const admin = createAdminClient()
 
   const { data: settings } = await admin
     .from("creator_settings")
-    .select("creator_id, theme, banner_url, affiliate_codes")
+    .select("creator_id, theme, affiliate_codes")
     .eq("subdomain", creatorSlug)
     .single()
 
@@ -49,13 +44,11 @@ export default async function CreatorHubPage({ params, searchParams }: CreatorHu
     .order("is_pinned", { ascending: false })
     .order("sort_order", { ascending: true })
 
-  // Build product and image lookup maps
   const { data: allProducts } = await admin.from("products").select("id, source_url, normalized_url, platform, item_id, title, agent_cached_price, is_oos")
   const { data: allImages } = await admin.from("product_images").select("id, product_id, url, is_qc")
 
   const productMap = new Map<string, any>()
   allProducts?.forEach((p: any) => productMap.set(p.id, p))
-
   const imageMap = new Map<string, any[]>()
   allImages?.forEach((img: any) => {
     if (!imageMap.has(img.product_id)) imageMap.set(img.product_id, [])
@@ -71,66 +64,46 @@ export default async function CreatorHubPage({ params, searchParams }: CreatorHu
   let filteredItems = items
   if (q) {
     const query = q.toLowerCase()
-    filteredItems = items.filter(
-      (item: any) =>
-        item.product?.title?.toLowerCase().includes(query) ||
-        item.custom_title?.toLowerCase().includes(query) ||
-        item.category?.toLowerCase().includes(query)
+    filteredItems = items.filter((item: any) =>
+      item.product?.title?.toLowerCase().includes(query) ||
+      item.custom_title?.toLowerCase().includes(query) ||
+      item.category?.toLowerCase().includes(query)
     )
   }
   if (category) {
-    filteredItems = filteredItems.filter(
-      (item: any) => item.category?.toLowerCase() === category.toLowerCase()
-    )
+    filteredItems = filteredItems.filter((item: any) => item.category?.toLowerCase() === category.toLowerCase())
   }
 
   const categories = [...new Set(items.map((i: any) => i.category).filter(Boolean))] as string[]
-
   const theme = (settings.theme as any) || {}
   const affiliateCodes = (settings.affiliate_codes as Record<string, string>) || {}
-  const accentColor = theme.primaryColor || "#6B7280"
 
   return (
-    <div
-      className="min-h-screen bg-background"
-      style={{
-        ["--creator-accent" as any]: accentColor,
-        ["--creator-accent-foreground" as any]: "#ffffff",
-      }}
-    >
-      <CreatorBanner
+    <div className="min-h-screen bg-background">
+      <CreatorHubHeader
         creator={profile}
-        settings={settings}
-        theme={theme}
+        categories={categories}
+        selectedCategory={category}
+        defaultValue={q}
+        accentColor={theme.primaryColor}
       />
-      <div className="mx-auto max-w-7xl px-4 py-8">
-        <SearchBar
-          defaultValue={q}
-          categories={categories}
-          selectedCategory={category}
-          accentColor={accentColor}
-        />
-        <div className="mt-8">
-          {filteredItems.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 text-center">
-              <p className="text-lg font-medium text-muted-foreground">
-                {q ? `Keine Ergebnisse für "${q}"` : "Noch keine Produkte vorhanden"}
-              </p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {q ? "Versuche einen anderen Suchbegriff" : "Der Creator hat noch keine Produkte hinzugefügt"}
-              </p>
-            </div>
-          ) : (
-              <ProductGrid
-                items={filteredItems}
-                creatorId={profile.id}
-                creatorSlug={creatorSlug}
-                affiliateCodes={affiliateCodes}
-                theme={theme}
-                tier={profile.tier}
-              />
-          )}
-        </div>
+      <div className="mx-auto max-w-7xl px-4 pt-4 pb-8">
+        {filteredItems.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-32 text-center">
+            <p className="font-mono text-sm text-muted-foreground">
+              {q ? `NO RESULTS FOR "${q}"` : "NO PRODUCTS YET"}
+            </p>
+          </div>
+        ) : (
+          <ProductGrid
+            items={filteredItems}
+            creatorId={profile.id}
+            creatorSlug={creatorSlug}
+            affiliateCodes={affiliateCodes}
+            theme={theme}
+            tier={profile.tier}
+          />
+        )}
       </div>
     </div>
   )
