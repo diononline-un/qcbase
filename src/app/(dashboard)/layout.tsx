@@ -1,25 +1,21 @@
 import { redirect } from "next/navigation"
-import { createClient } from "@/lib/supabase/server"
+import { cookies } from "next/headers"
+import { getUserBySessionToken } from "@/lib/auth/auth"
+import { createAdminClient } from "@/lib/supabase/admin"
 import { DashboardSidebar } from "@/components/dashboard/sidebar"
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const c = await cookies()
+  const token = c.get("session")?.value
+  if (!token) redirect("/login")
 
-  if (!user) {
-    redirect("/login")
-  }
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", user.id)
-    .single()
+  const user = await getUserBySessionToken(token)
+  if (!user) redirect("/login")
 
   return (
-    <div className="flex min-h-screen">
-      <DashboardSidebar username={profile?.username || "User"} />
-      <main className="flex-1 overflow-auto bg-background">
+    <div className="flex min-h-screen bg-zinc-950">
+      <DashboardSidebar username={user.username || "User"} />
+      <main className="flex-1 overflow-auto">
         <div className="mx-auto max-w-7xl px-4 py-8">
           {children}
         </div>
