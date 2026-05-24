@@ -24,7 +24,7 @@ export async function POST(request: Request) {
           : "creator"
 
         await admin
-          .from("profiles")
+          .from("user_accounts")
           .update({ tier })
           .eq("id", userId)
       }
@@ -35,7 +35,7 @@ export async function POST(request: Request) {
       const userId = body.passthrough || body.custom_data?.user_id
       if (userId) {
         await admin
-          .from("profiles")
+          .from("user_accounts")
           .update({ tier: "free" })
           .eq("id", userId)
       }
@@ -54,7 +54,7 @@ export async function POST(request: Request) {
           : "creator"
 
         await admin
-          .from("profiles")
+          .from("user_accounts")
           .update({ tier })
           .eq("id", userId)
       }

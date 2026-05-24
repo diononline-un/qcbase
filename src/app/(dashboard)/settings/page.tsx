@@ -18,7 +18,7 @@ export default async function SettingsPage() {
 
   const admin = createAdminClient()
   const { data: profile } = await admin
-    .from("profiles")
+    .from("user_accounts")
     .select("username, tier")
     .eq("id", user.id)
     .single()

@@ -14,7 +14,7 @@ export async function updateProfile(data: {
 
   const admin = createAdminClient()
   const { error } = await admin
-    .from("profiles")
+    .from("user_accounts")
     .update({
       username: data.username,
       avatar_url: data.avatarUrl,

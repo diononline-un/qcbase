@@ -16,7 +16,7 @@ export default async function BillingPage() {
   if (!user) redirect("/login")
 
   const { data: profile } = await supabase
-    .from("profiles")
+    .from("user_accounts")
     .select("tier")
     .eq("id", user.id)
     .single()

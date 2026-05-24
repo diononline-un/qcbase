@@ -18,7 +18,7 @@ export default async function HomePage() {
       products?.forEach((p: any) => productMap.set(p.id, p))
     }
     trending = (items || []).slice(0, 6).map((i: any) => ({ ...i, product: productMap.get(i.product_id) })).filter((i: any) => i.product)
-    const { data: p } = await admin.from("profiles").select("id, username, tier").eq("role", "creator").limit(6)
+    const { data: p } = await admin.from("user_accounts").select("id, username, tier").eq("role", "creator").limit(6)
     profiles = p || []
   } catch {}
 

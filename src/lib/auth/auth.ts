@@ -14,7 +14,7 @@ function getSql() {
 }
 
 function hashPassword(password: string, salt: string): string {
-  return crypto.createHash("sha512").update(salt + password).digest("hex")
+  return crypto.pbkdf2Sync(password, salt, 10000, 64, "sha512").toString("hex")
 }
 
 export async function createUserAccount(email: string, password: string, username?: string) {

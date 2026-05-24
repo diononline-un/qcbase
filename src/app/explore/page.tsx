@@ -54,7 +54,7 @@ export default async function ExplorePage({
     // Fetch creator usernames
     if (creatorIds.length > 0) {
       const { data: profiles } = await admin
-        .from("profiles")
+        .from("user_accounts")
         .select("id, username")
         .limit(1000)
       profiles?.forEach((p: any) => creatorMap.set(p.id, p.username || ""))

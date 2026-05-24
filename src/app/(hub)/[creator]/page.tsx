@@ -30,7 +30,7 @@ export default async function CreatorHubPage({ params, searchParams }: CreatorHu
   if (!settings) notFound()
 
   const { data: profile } = await admin
-    .from("profiles")
+    .from("user_accounts")
     .select("id, username, role, tier, avatar_url")
     .eq("id", settings.creator_id)
     .single()
