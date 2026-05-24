@@ -5,12 +5,14 @@ import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
-  LayoutDashboard, Link2, Palette, Settings, CreditCard, BarChart3, LogOut,
+  LayoutDashboard, Link2, Palette, Settings, CreditCard, BarChart3, LogOut, Upload, Bookmark,
 } from "lucide-react"
 
 const navItems = [
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/links", label: "Links", icon: Link2 },
+  { href: "/import", label: "Import", icon: Upload },
+  { href: "/collections", label: "Collections", icon: Bookmark },
   { href: "/theme", label: "Theme", icon: Palette },
   { href: "/billing", label: "Billing", icon: CreditCard },
   { href: "/settings", label: "Settings", icon: Settings },
