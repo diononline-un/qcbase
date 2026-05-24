@@ -1,27 +1,31 @@
-import { createServerClient } from "@supabase/ssr"
 import { cookies } from "next/headers"
+import { getUserBySessionToken } from "@/lib/auth/auth"
+import { createAdminClient } from "@/lib/supabase/admin"
 
 export async function createClient() {
   const cookieStore = await cookies()
+  const token = cookieStore.get("session")?.value
 
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll()
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            )
-          } catch {
-            // ignore in server components
-          }
-        },
+  return {
+    auth: {
+      getUser: async () => {
+        if (!token) return { data: { user: null }, error: null }
+        const user = await getUserBySessionToken(token)
+        return {
+          data: {
+            user: user ? {
+              id: user.id,
+              email: user.email,
+              user_metadata: { username: user.username },
+            } : null,
+          },
+          error: null,
+        }
       },
-    }
-  )
+    },
+    from: (table: string) => {
+      const admin = createAdminClient()
+      return admin.from(table)
+    },
+  }
 }
