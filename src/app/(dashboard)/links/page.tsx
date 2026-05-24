@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { redirect } from "next/navigation"
 import { ExternalLink, Plus, Search } from "lucide-react"
 import { addProduct, linkToCreator } from "@/lib/actions/products"
+import { scrapeImagesAction } from "@/lib/actions/scrape-images"
 import { revalidatePath } from "next/cache"
 
 export default async function LinksPage({
@@ -116,6 +117,13 @@ export default async function LinksPage({
                   <ExternalLink className="h-4 w-4" />
                 </Button>
               </a>
+              <form action={scrapeImagesAction.bind(null, item.product?.source_url)}>
+                <Button variant="ghost" size="icon" className="h-8 w-8" type="submit" title="Bilder scrapen">
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </Button>
+              </form>
             </CardContent>
           </Card>
         ))}

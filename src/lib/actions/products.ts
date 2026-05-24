@@ -36,6 +36,26 @@ export async function addProduct(sourceUrl: string): Promise<{ productId: string
     throw new Error(`Failed to add product: ${error.message}`)
   }
 
+  // Fire-and-forget: scrape images in background
+  import("@/lib/scraping/image-scraper").then(({ scrapeProductImages }) => {
+      scrapeProductImages(sourceUrl).then(async (result) => {
+        if (result.success && result.images.length > 0) {
+          const admin = createAdminClient()
+          if (result.title) {
+            await admin.from("products").update({ title: result.title }).eq("id", product.id)
+          }
+          for (let i = 0; i < result.images.length; i++) {
+            try {
+              await admin.from("product_images").upsert(
+                { product_id: product.id, url: result.images[i], is_qc: false, order: i },
+                { onConflict: "product_id,url" }
+              )
+            } catch {}
+          }
+        }
+      }).catch(() => {})
+  })
+
   return { productId: product.id, isNew: true }
 }
 
