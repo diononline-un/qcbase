@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge"
 import { redirect } from "next/navigation"
 import { TIER_LABELS, TIER_DESCRIPTIONS, TIER_FEATURES } from "@/lib/tiers"
 import type { Tier } from "@/lib/tiers"
-import { Check, ArrowRight } from "lucide-react"
+import { Check } from "lucide-react"
 
 const TIERS: Tier[] = ["free", "creator", "creator_plus", "reseller"]
 
@@ -67,13 +67,20 @@ export default async function BillingPage() {
               </CardContent>
               <CardFooter>
                 {isCurrent ? (
-                  <Button variant="outline" className="w-full" disabled>
-                    Aktueller Plan
-                  </Button>
+                  <div className="w-full space-y-1">
+                    <Button variant="outline" className="w-full" disabled>
+                      Aktueller Plan
+                    </Button>
+                  </div>
                 ) : (
-                  <Button className="w-full gap-1" variant={tier === "creator_plus" ? "default" : "outline"}>
-                    Upgrade <ArrowRight className="h-3 w-3" />
-                  </Button>
+                  <div className="w-full space-y-2">
+                    <Button className="w-full gap-1" variant="outline" disabled>
+                      Coming Soon
+                    </Button>
+                    <p className="text-center text-[10px] text-muted-foreground">
+                      Payment integration coming soon. Contact support for early access.
+                    </p>
+                  </div>
                 )}
               </CardFooter>
             </Card>

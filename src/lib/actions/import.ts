@@ -76,7 +76,7 @@ export async function batchImportProducts(
           },
           { onConflict: "creator_id,product_id" }
         )
-      } catch {}
+      } catch (e) { console.error("Failed to upsert creator item", e) }
 
     } catch (e: any) {
       errors.push(`${row.title || row.source_url}: ${e.message}`)

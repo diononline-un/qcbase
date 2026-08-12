@@ -9,8 +9,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { ExternalLink, ChevronDown, Store } from "lucide-react"
-import { createClient } from "@/lib/supabase/client"
 import { buildAgentUrl } from "@/lib/agents"
+import { trackClickOut } from "@/lib/actions/products"
 import { useState } from "react"
 import posthog from "posthog-js"
 
@@ -40,19 +40,14 @@ interface AgentDropdownProps {
 
 export function AgentDropdown({ sourceUrl, productId, creatorId, creatorSlug, affiliateCodes, accentColor, tier = "free" }: AgentDropdownProps) {
   const [open, setOpen] = useState(false)
-  const supabase = createClient()
 
   // Free tier: only show first agent (standard checkout)
   const availableAgents = tier === "free" ? AGENT_LIST.slice(0, 1) : AGENT_LIST
 
   const handleAgentClick = async (agentId: string) => {
     try {
-      await supabase.from("click_events").insert({
-        product_id: productId,
-        creator_id: creatorId,
-        agent_id: agentId,
-      })
-    } catch {}
+      await trackClickOut(productId, creatorId, agentId)
+    } catch {} 
 
     try {
       posthog.capture("click_out_to_agent", {

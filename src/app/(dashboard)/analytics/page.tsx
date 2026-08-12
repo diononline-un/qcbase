@@ -80,6 +80,9 @@ export default async function AnalyticsPage() {
         <p className="text-sm text-muted-foreground">
           {TIER_LABELS[tier]} Tier
         </p>
+        <p className="text-xs text-muted-foreground">
+          All time
+        </p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
@@ -112,9 +115,9 @@ export default async function AnalyticsPage() {
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">
-              {itemCount > 0 ? ((clickCount / Math.max(itemCount, 1)) * 1).toFixed(1) : 0}
+              {itemCount > 0 ? (clickCount / itemCount).toFixed(1) : 0}
             </p>
-            <p className="text-xs text-muted-foreground">Clicks pro Produkt</p>
+            <p className="text-xs text-muted-foreground">Clicks / Produkte</p>
           </CardContent>
         </Card>
       </div>

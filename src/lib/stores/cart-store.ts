@@ -1,5 +1,6 @@
 import { create } from "zustand"
 import { persist } from "zustand/middleware"
+import { buildAgentUrl } from "@/lib/agents"
 
 export interface CartItem {
   id: string
@@ -22,7 +23,7 @@ interface CartState {
   setItemStatus: (id: string, status: CartItem["status"]) => void
   setCurrentIndex: (index: number) => void
   setAgentWindow: (win: Window | null) => void
-  launchAgent: () => void
+  launchAgent: (agentId?: string) => void
   nextProduct: () => void
   prevProduct: () => void
 }
@@ -56,16 +57,14 @@ export const useCartStore = create<CartState>()(
 
       setAgentWindow: (win) => set({ agentWindow: win }),
 
-      launchAgent: () => {
+      launchAgent: (agentId?: string) => {
         const { items, currentIndex } = get()
         if (items.length === 0) return
 
         const item = items[currentIndex]
         if (!item) return
 
-        // Build agent URL using GTBuy as default
-        const encoded = encodeURIComponent(item.sourceUrl)
-        const url = `https://gtbuy.com/item?url=${encoded}&inviteCode=PSKAK696A`
+        const url = buildAgentUrl(item.sourceUrl, agentId || "gtbuy", "PSKAK696A")
 
         const existing = get().agentWindow
         if (existing && !existing.closed) {

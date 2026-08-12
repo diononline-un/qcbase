@@ -36,10 +36,12 @@ export const acbuy: AgentConfig = {
   id: "acbuy",
   name: "ACBuy",
   logoUrl: "/agents/acbuy.png",
-  baseUrl: "https://acbuy.com",
+  baseUrl: "https://www.acbuy.com",
   supportedPlatforms: ["weidian", "taobao", "1688", "dhgate"],
-  buildUrl: ({ sourceUrl, affiliateCode }) =>
-    `https://acbuy.com/item?url=${encodedUrl(sourceUrl)}${affiliateCode ? `&aff=${affiliateCode}` : ""}`,
+  buildUrl: ({ sourceUrl, itemId, platform, affiliateCode }) => {
+    const encoded = encodeURIComponent(sourceUrl)
+    return `https://www.acbuy.com/product?id=${itemId || encoded}&u=${affiliateCode || "42ME6V"}&source=${platform?.toUpperCase().slice(0, 2) || "WD"}`
+  },
 }
 
 export const gtbuy: AgentConfig = {
@@ -48,8 +50,10 @@ export const gtbuy: AgentConfig = {
   logoUrl: "/agents/gtbuy.png",
   baseUrl: "https://gtbuy.com",
   supportedPlatforms: ["weidian", "taobao", "1688", "dhgate"],
-  buildUrl: ({ sourceUrl, affiliateCode }) =>
-    `https://gtbuy.com/item?url=${encodedUrl(sourceUrl)}${affiliateCode ? `&aff=${affiliateCode}` : ""}`,
+  buildUrl: ({ sourceUrl, itemId, platform, affiliateCode }) => {
+    const encoded = encodeURIComponent(sourceUrl)
+    return `https://gtbuy.com/goods/details?id=${itemId || encoded}&channel=${platform?.toUpperCase() || "WEIDIAN"}&inviteCode=${affiliateCode || "PSKAK696A"}`
+  },
 }
 
 export const usfans: AgentConfig = {
@@ -78,8 +82,9 @@ export const cssbuy: AgentConfig = {
   logoUrl: "/agents/cssbuy.png",
   baseUrl: "https://cssbuy.com",
   supportedPlatforms: ["weidian", "taobao", "1688", "dhgate"],
-  buildUrl: ({ sourceUrl, affiliateCode }) =>
-    `https://cssbuy.com/item?url=${encodedUrl(sourceUrl)}${affiliateCode ? `&aff=${affiliateCode}` : ""}`,
+  // VERIFIED: not confirmed
+  buildUrl: ({ sourceUrl, itemId, affiliateCode }) =>
+    `https://cssbuy.com/index.php?main_page=product_info&products_id=${itemId || encodedUrl(sourceUrl)}${affiliateCode ? `&aff=${affiliateCode}` : ""}`,
 }
 
 export const cnfans: AgentConfig = {
@@ -88,8 +93,9 @@ export const cnfans: AgentConfig = {
   logoUrl: "/agents/cnfans.png",
   baseUrl: "https://cnfans.com",
   supportedPlatforms: ["weidian", "taobao", "1688", "dhgate"],
-  buildUrl: ({ sourceUrl, affiliateCode }) =>
-    `https://cnfans.com/search/all?keyword=${encodedUrl(sourceUrl)}${affiliateCode ? `&aff=${affiliateCode}` : ""}`,
+  // VERIFIED: not confirmed
+  buildUrl: ({ sourceUrl, itemId, affiliateCode }) =>
+    `https://cnfans.com/sub/order/confirm-order?goodsId=${itemId || encodedUrl(sourceUrl)}${affiliateCode ? `&inviteCode=${affiliateCode}` : ""}`,
 }
 
 export const superbuy: AgentConfig = {

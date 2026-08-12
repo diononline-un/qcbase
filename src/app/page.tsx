@@ -2,6 +2,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { createAdminClient } from "@/lib/supabase/admin"
+import { SiteNav } from "@/components/ui/site-nav"
 
 export const dynamic = "force-dynamic"
 
@@ -24,27 +25,12 @@ export default async function HomePage() {
 
   return (
     <div className="min-h-screen bg-background dark:bg-zinc-950">
-      {/* Marquee Ticker */}
-      <div className="overflow-hidden border-b border-zinc-200 bg-zinc-950 py-2 dark:border-zinc-800">
-        <div className="animate-marquee whitespace-nowrap font-mono text-xs text-emerald-400">
-          <span className="mx-8">[SYS] 14,204 Links Scrubbed Today</span>
-          <span className="mx-8">[SYS] 120ms Average Routing Speed</span>
-          <span className="mx-8">[SYS] 890 OOS Links Purged</span>
-          <span className="mx-8">[SYS] 11 Active Agents</span>
-          <span className="mx-8">[SYS] 1,022 Products Indexed</span>
-          <span className="mx-8">[SYS] 14,204 Links Scrubbed Today</span>
-          <span className="mx-8">[SYS] 120ms Average Routing Speed</span>
-          <span className="mx-8">[SYS] 890 OOS Links Purged</span>
-        </div>
-      </div>
-
       {/* Header */}
       <header className="border-b border-zinc-200 dark:border-zinc-800">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4">
           <Link href="/" className="text-xl font-bold tracking-tight">QCBase</Link>
           <div className="flex items-center gap-3">
-            <Link href="/explore"><Button variant="ghost" size="sm" className="text-xs">Explore</Button></Link>
-            <Link href="/login"><Button size="sm" className="text-xs">Login</Button></Link>
+            <SiteNav />
           </div>
         </div>
       </header>

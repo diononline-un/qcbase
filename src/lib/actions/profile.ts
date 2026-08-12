@@ -1,16 +1,23 @@
 "use server"
 
-import { createClient } from "@/lib/supabase/server"
+import { cookies } from "next/headers"
 import { createAdminClient } from "@/lib/supabase/admin"
+import { getUserBySessionToken } from "@/lib/auth/auth"
+
+async function getCurrentUserId(): Promise<string | null> {
+  const cookieStore = await cookies()
+  const token = cookieStore.get("session")?.value
+  if (!token) return null
+  const user = await getUserBySessionToken(token)
+  return user?.id || null
+}
 
 export async function updateProfile(data: {
   username?: string
   avatarUrl?: string
 }): Promise<void> {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-
-  if (!user) throw new Error("Not authenticated")
+  const userId = await getCurrentUserId()
+  if (!userId) throw new Error("Not authenticated")
 
   const admin = createAdminClient()
   const { error } = await admin
@@ -19,7 +26,7 @@ export async function updateProfile(data: {
       username: data.username,
       avatar_url: data.avatarUrl,
     })
-    .eq("id", user.id)
+    .eq("id", userId)
 
   if (error) {
     throw new Error(`Failed to update profile: ${error.message}`)
@@ -33,16 +40,14 @@ export async function updateCreatorSettings(data: {
   bannerUrl?: string
   affiliateCodes?: Record<string, string>
 }): Promise<void> {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-
-  if (!user) throw new Error("Not authenticated")
+  const userId = await getCurrentUserId()
+  if (!userId) throw new Error("Not authenticated")
 
   const admin = createAdminClient()
   const { error } = await admin
     .from("creator_settings")
     .upsert({
-      creator_id: user.id,
+      creator_id: userId,
       subdomain: data.subdomain,
       custom_domain: data.customDomain,
       theme: data.theme || {},

@@ -1,9 +1,18 @@
 "use server"
 
-import { createClient } from "@/lib/supabase/server"
+import { cookies } from "next/headers"
 import { createAdminClient } from "@/lib/supabase/admin"
+import { getUserBySessionToken } from "@/lib/auth/auth"
 import { parseSourceUrl } from "@/lib/parser"
 import { revalidatePath } from "next/cache"
+
+async function getCurrentUserId(): Promise<string | null> {
+  const cookieStore = await cookies()
+  const token = cookieStore.get("session")?.value
+  if (!token) return null
+  const user = await getUserBySessionToken(token)
+  return user?.id || null
+}
 
 export async function addProduct(sourceUrl: string): Promise<{ productId: string; isNew: boolean }> {
   const parsed = parseSourceUrl(sourceUrl)
@@ -50,10 +59,10 @@ export async function addProduct(sourceUrl: string): Promise<{ productId: string
                 { product_id: product.id, url: result.images[i], is_qc: false, order: i },
                 { onConflict: "product_id,url" }
               )
-            } catch {}
+            } catch (e) { console.error("Failed to upsert product image", e) }
           }
         }
-      }).catch(() => {})
+      }).catch((e) => { console.error("Failed to scrape images in background", e) })
   })
 
   return { productId: product.id, isNew: true }
@@ -64,10 +73,9 @@ export async function linkToCreator(
   productId: string,
   category?: string
 ): Promise<void> {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const userId = await getCurrentUserId()
 
-  if (!user || user.id !== creatorId) {
+  if (!userId || userId !== creatorId) {
     throw new Error("Unauthorized")
   }
 
@@ -175,6 +183,34 @@ export async function updateProductStatus(
   }
 
   revalidatePath("/")
+}
+
+export async function deleteCreatorItem(itemId: string): Promise<void> {
+  const admin = createAdminClient()
+  const { error } = await admin
+    .from("creator_items")
+    .delete()
+    .eq("id", itemId)
+
+  if (error) {
+    throw new Error(`Failed to delete item: ${error.message}`)
+  }
+
+  revalidatePath("/links")
+}
+
+export async function toggleCreatorItemPin(itemId: string, isPinned: boolean): Promise<void> {
+  const admin = createAdminClient()
+  const { error } = await admin
+    .from("creator_items")
+    .update({ is_pinned: !isPinned })
+    .eq("id", itemId)
+
+  if (error) {
+    throw new Error(`Failed to toggle pin: ${error.message}`)
+  }
+
+  revalidatePath("/links")
 }
 
 export async function trackClickOut(

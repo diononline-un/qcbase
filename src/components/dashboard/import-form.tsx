@@ -34,7 +34,8 @@ export function ImportForm({ userId }: ImportFormProps) {
     setLoading(true)
     setResult(null)
 
-    // Parse CSV: first line = headers, rest = data
+    // Parse CSV. Note: naive split(",") does not handle quoted fields
+    // containing commas. For production, use a proper CSV parser.
     const lines = csvText.trim().split("\n")
     if (lines.length < 2) {
       setResult({ imported: 0, skipped: 0, errors: ["CSV must have header + at least 1 data row"] })

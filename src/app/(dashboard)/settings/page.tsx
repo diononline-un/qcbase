@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { redirect } from "next/navigation"
 import { revalidatePath } from "next/cache"
-import { updateCreatorSettings } from "@/lib/actions/profile"
+import { updateProfile, updateCreatorSettings } from "@/lib/actions/profile"
 import { TIER_LABELS } from "@/lib/tiers"
 import type { Tier } from "@/lib/tiers"
 
@@ -48,21 +48,40 @@ export default async function SettingsPage() {
             <CardDescription>Benutzername und Subdomain</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label>Benutzername</Label>
-              <Input defaultValue={profile?.username || ""} readOnly />
-            </div>
-            <div className="space-y-2">
-              <Label>Subdomain</Label>
+            <form
+              action={async (formData: FormData) => {
+                "use server"
+                const username = formData.get("username") as string
+                await updateProfile({ username })
+                revalidatePath("/settings")
+              }}
+              className="space-y-2"
+            >
+              <Label htmlFor="username">Benutzername</Label>
+              <Input id="username" name="username" defaultValue={profile?.username || ""} />
+              <Button type="submit" size="sm">Profil speichern</Button>
+            </form>
+            <form
+              action={async (formData: FormData) => {
+                "use server"
+                const subdomain = formData.get("subdomain") as string
+                await updateCreatorSettings({ subdomain })
+                revalidatePath("/settings")
+              }}
+              className="space-y-2"
+            >
+              <Label htmlFor="subdomain">Subdomain</Label>
               <Input
+                id="subdomain"
+                name="subdomain"
                 defaultValue={settings?.subdomain || ""}
-                readOnly
                 placeholder="deinname"
               />
               <p className="text-xs text-muted-foreground">
                 deinname.qcbase.site
               </p>
-            </div>
+              <Button type="submit" size="sm">Subdomain speichern</Button>
+            </form>
           </CardContent>
         </Card>
 

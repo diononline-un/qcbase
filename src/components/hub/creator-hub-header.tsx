@@ -2,21 +2,19 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Input } from "@/components/ui/input"
 import { CartButton } from "@/components/cart/cart-button"
-import { Search, X } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { AuthButton } from "@/components/ui/auth-button"
+import { Heart, Search, X } from "lucide-react"
 
 interface CreatorHubHeaderProps {
   creator: { username: string | null; avatar_url: string | null }
-  categories: string[]
-  selectedCategory?: string
   defaultValue?: string
-  accentColor?: string
 }
 
-export function CreatorHubHeader({ creator, categories, selectedCategory, defaultValue = "", accentColor }: CreatorHubHeaderProps) {
+export function CreatorHubHeader({ creator, defaultValue = "" }: CreatorHubHeaderProps) {
   const router = useRouter()
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchValue, setSearchValue] = useState(defaultValue)
@@ -30,17 +28,8 @@ export function CreatorHubHeader({ creator, categories, selectedCategory, defaul
     router.push(`?${params.toString()}`)
   }
 
-  const selectCategory = (cat: string | null) => {
-    const params = new URLSearchParams(window.location.search)
-    if (cat) params.set("category", cat)
-    else params.delete("category")
-    if (searchValue) params.set("q", searchValue)
-    router.push(`?${params.toString()}`)
-  }
-
   return (
     <>
-      {/* Sticky Header */}
       <header className="sticky top-0 z-50 border-b border-zinc-200 bg-background/80 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-950/80">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
           <div className="flex items-center gap-3">
@@ -57,11 +46,14 @@ export function CreatorHubHeader({ creator, categories, selectedCategory, defaul
             <button onClick={() => setSearchOpen(!searchOpen)} className="text-muted-foreground hover:text-foreground">
               <Search className="h-5 w-5" />
             </button>
+            <Link href="/collections" className="text-muted-foreground transition-colors hover:text-foreground" title="Wishlist">
+              <Heart className="h-5 w-5" />
+            </Link>
             <CartButton />
+            <AuthButton />
           </div>
         </div>
 
-        {/* Search Overlay */}
         {searchOpen && (
           <div className="border-t border-zinc-200 px-4 py-3 dark:border-zinc-800">
             <div className="relative mx-auto max-w-7xl">
@@ -83,41 +75,6 @@ export function CreatorHubHeader({ creator, categories, selectedCategory, defaul
           </div>
         )}
       </header>
-
-      {/* Filter Pills */}
-      {categories.length > 0 && (
-        <div className="border-b border-zinc-200 dark:border-zinc-800">
-          <div className="mx-auto flex max-w-7xl gap-2 overflow-x-auto px-4 py-2.5">
-            <button
-              onClick={() => selectCategory(null)}
-              className={cn(
-                "flex-shrink-0 rounded-full border px-3 py-1 font-mono text-xs transition-colors",
-                !selectedCategory
-                  ? "border-foreground bg-foreground text-background"
-                  : "border-zinc-200 text-muted-foreground hover:border-zinc-400 dark:border-zinc-800"
-              )}
-              style={!selectedCategory && accentColor ? { backgroundColor: accentColor, borderColor: accentColor } : undefined}
-            >
-              ALL
-            </button>
-            {categories.map((cat) => (
-              <button
-                key={cat}
-                onClick={() => selectCategory(cat)}
-                className={cn(
-                  "flex-shrink-0 rounded-full border px-3 py-1 font-mono text-xs transition-colors",
-                  selectedCategory === cat
-                    ? "border-foreground bg-foreground text-background"
-                    : "border-zinc-200 text-muted-foreground hover:border-zinc-400 dark:border-zinc-800"
-                )}
-                style={selectedCategory === cat && accentColor ? { backgroundColor: accentColor, borderColor: accentColor } : undefined}
-              >
-                {cat}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
     </>
   )
 }

@@ -20,8 +20,8 @@ export async function scrapeProductImages(sourceUrl: string): Promise<ImageScrap
     await page.goto(sourceUrl, {
       waitUntil: "domcontentloaded",
       timeout: 15000,
-    }).catch(() => {
-      // Page might block, continue anyway
+    }).catch((e) => {
+      console.error("Failed to navigate to source URL", e)
     })
 
     await page.waitForTimeout(2000)
@@ -40,7 +40,7 @@ export async function scrapeProductImages(sourceUrl: string): Promise<ImageScrap
           }
         }, 200)
       })
-    }).catch(() => {})
+    }).catch((e) => { console.error("Failed to scroll page for lazy images", e) })
 
     await page.waitForTimeout(1000)
 
@@ -102,7 +102,7 @@ export async function scrapeProductImages(sourceUrl: string): Promise<ImageScrap
     }
   } finally {
     if (browser) {
-      await browser.close().catch(() => {})
+      await browser.close().catch((e) => { console.error("Failed to close browser", e) })
     }
   }
 }

@@ -32,7 +32,7 @@ export async function scrapeImagesAction(sourceUrl: string) {
           { product_id: product.id, url: result.images[i], is_qc: false, order: i },
           { onConflict: "product_id,url" }
         )
-      } catch {}
+      } catch (e) { console.error("Failed to upsert product image", e) }
     }
   }
 

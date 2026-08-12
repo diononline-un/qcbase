@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { ExploreGrid } from "@/components/explore/explore-grid"
 import { SearchBar } from "@/components/hub/search-bar"
+import { SiteNav } from "@/components/ui/site-nav"
 
 export const dynamic = "force-dynamic"
 
@@ -43,7 +44,7 @@ export default async function ExplorePage({
     if (productIds.length > 0) {
       const { data: images } = await admin
         .from("product_images")
-        .select("id, product_id, url, is_qc")
+        .select("id, product_id, url, is_qc, dominant_color")
         .limit(5000)
       images?.forEach((img: any) => {
         if (!imageMap.has(img.product_id)) imageMap.set(img.product_id, [])
@@ -103,7 +104,7 @@ export default async function ExplorePage({
             <a href="/" className="text-lg font-bold tracking-tight">QCBase</a>
             <span className="font-mono text-[10px] tracking-wider text-muted-foreground">EXPLORE</span>
           </div>
-          <a href="/login" className="text-xs text-muted-foreground hover:text-foreground">Login</a>
+          <SiteNav />
         </div>
       </header>
 

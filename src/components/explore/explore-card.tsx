@@ -1,8 +1,9 @@
 "use client"
 
+import { useState } from "react"
 import { Badge } from "@/components/ui/badge"
-import { buildAgentUrl } from "@/lib/agents"
 import Link from "next/link"
+import { GalleryModal } from "@/components/hub/gallery-modal"
 
 interface ExploreCardProps {
   item: {
@@ -27,9 +28,8 @@ interface ExploreCardProps {
   }
 }
 
-const QCBASE_GTBUY_CODE = "PSKAK696A"
-
 export function ExploreCard({ item }: ExploreCardProps) {
+  const [galleryOpen, setGalleryOpen] = useState(false)
   const product = item.product
   if (!product) return null
 
@@ -38,23 +38,16 @@ export function ExploreCard({ item }: ExploreCardProps) {
   const qcImage = images.find((img) => img.is_qc)?.url
   const title = product.title || "Produkt"
   const price = product.agent_cached_price
-
-  const handleClick = () => {
-    const url = buildAgentUrl(product.source_url, "gtbuy", QCBASE_GTBUY_CODE)
-    window.open(url, "_blank", "noopener,noreferrer")
-  }
+  const creatorSlug = item.creatorName || "explore"
 
   return (
-    <div
-      className="group cursor-pointer"
-      onClick={handleClick}
-      onKeyDown={(e) => e.key === "Enter" && handleClick()}
-      role="button"
-      tabIndex={0}
-    >
-      <div className={`relative aspect-square overflow-hidden bg-muted ${product.is_oos ? "opacity-40" : ""}`}>
+    <div className="group">
+      <div
+        className={`relative aspect-square cursor-pointer overflow-hidden bg-muted ${product.is_oos ? "opacity-40" : ""}`}
+        onClick={() => images.length > 0 && setGalleryOpen(true)}
+      >
         {thumbnail ? (
-          <div className="relative h-full w-full">
+          <>
             <img
               src={thumbnail}
               alt={title}
@@ -69,7 +62,7 @@ export function ExploreCard({ item }: ExploreCardProps) {
                 loading="lazy"
               />
             )}
-          </div>
+          </>
         ) : (
           <div className="flex h-full w-full items-center justify-center text-muted-foreground">
             <svg className="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -98,23 +91,25 @@ export function ExploreCard({ item }: ExploreCardProps) {
         </div>
       </div>
 
-      <div className="px-0.5 py-2">
-        <p className="line-clamp-2 text-sm font-medium leading-tight">{title}</p>
+      <Link href={`/${creatorSlug}/product/${product.id}`} className="block px-0.5 py-2">
+        <p className="line-clamp-2 text-sm font-medium leading-tight hover:underline">{title}</p>
         {price !== null && (
           <p className="mt-0.5 font-mono text-sm text-muted-foreground">
             ~{Number(price).toFixed(2).replace(".", ",")} €
           </p>
         )}
         {item.creatorName && (
-          <Link
-            href={`/${item.creatorName}`}
-            className="mt-0.5 inline-block font-mono text-[10px] text-muted-foreground hover:text-foreground"
-            onClick={(e) => e.stopPropagation()}
-          >
+          <span className="mt-0.5 inline-block font-mono text-[10px] text-muted-foreground">
             by @{item.creatorName}
-          </Link>
+          </span>
         )}
-      </div>
+      </Link>
+
+      <GalleryModal
+        open={galleryOpen}
+        onClose={() => setGalleryOpen(false)}
+        images={images}
+      />
     </div>
   )
 }

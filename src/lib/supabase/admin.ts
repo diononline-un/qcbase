@@ -15,6 +15,7 @@ function getSql() {
 }
 
 function cols(s: string): string {
+  if (s.trim() === "*") return "*"
   return s.split(",").map((c) => `"${c.trim()}"`).join(", ")
 }
 
@@ -49,6 +50,29 @@ function wrapSql(sqlClient: ReturnType<typeof postgres>) {
             const rows = await query(sqlClient, `SELECT ${cols(columns)} FROM ${ident(table)} WHERE ${ident(col)} = ${esc(val_)} LIMIT 1`)
             return { data: rows[0] || null, error: null }
           },
+          limit: (n: number) => ({
+            then: async (resolve: any) => {
+              const rows = await query(sqlClient, `SELECT ${cols(columns)} FROM ${ident(table)} WHERE ${ident(col)} = ${esc(val_)} LIMIT ${n}`)
+              resolve({ data: rows, error: null, count: rows.length })
+            }
+          }),
+          eq: (col2: string, val2_: string) => ({
+            order: (col3: string, opts: { ascending: boolean }) => ({
+              then: async (resolve: any) => {
+                const dir = opts.ascending ? "ASC" : "DESC"
+                const rows = await query(sqlClient, `SELECT ${cols(columns)} FROM ${ident(table)} WHERE ${ident(col)} = ${esc(val_)} AND ${ident(col2)} = ${esc(val2_)} ORDER BY ${ident(col3)} ${dir}`)
+                resolve({ data: rows, error: null, count: rows.length })
+              }
+            }),
+            single: async () => {
+              const rows = await query(sqlClient, `SELECT ${cols(columns)} FROM ${ident(table)} WHERE ${ident(col)} = ${esc(val_)} AND ${ident(col2)} = ${esc(val2_)} LIMIT 1`)
+              return { data: rows[0] || null, error: null }
+            },
+            then: async (resolve: any) => {
+              const rows = await query(sqlClient, `SELECT ${cols(columns)} FROM ${ident(table)} WHERE ${ident(col)} = ${esc(val_)} AND ${ident(col2)} = ${esc(val2_)}`)
+              resolve({ data: rows, error: null, count: rows.length })
+            }
+          }),
           order: (col2: string, opts: { ascending: boolean }) => ({
             limit: (n: number) => ({
               then: async (resolve: any) => {
@@ -102,6 +126,21 @@ function wrapSql(sqlClient: ReturnType<typeof postgres>) {
             }
           })
         }),
+        in: (col: string, vals: string[]) => ({
+          order: (col2: string, opts: { ascending: boolean }) => ({
+            then: async (resolve: any) => {
+              const dir = opts.ascending ? "ASC" : "DESC"
+              const valsStr = vals.map((v) => esc(v)).join(", ")
+              const rows = await query(sqlClient, `SELECT ${cols(columns)} FROM ${ident(table)} WHERE ${ident(col)} IN (${valsStr}) ORDER BY ${ident(col2)} ${dir}`)
+              resolve({ data: rows, error: null })
+            }
+          }),
+          then: async (resolve: any) => {
+            const valsStr = vals.map((v) => esc(v)).join(", ")
+            const rows = await query(sqlClient, `SELECT ${cols(columns)} FROM ${ident(table)} WHERE ${ident(col)} IN (${valsStr})`)
+            resolve({ data: rows, error: null, count: rows.length })
+          }
+        }),
         order: (col2: string, opts: { ascending: boolean }) => ({
           limit: (n: number) => ({
             then: async (resolve: any) => {
@@ -147,9 +186,25 @@ function wrapSql(sqlClient: ReturnType<typeof postgres>) {
             const vals_list = items.map((item: any) => `(${cols_arr.map((c: string) => esc(item[c])).join(", ")})`).join(", ")
             const sqlStr = `INSERT INTO ${ident(table)} (${cols(cols_arr.join(", "))}) VALUES ${vals_list} RETURNING ${cols(cols_)}`
             const rows = await query(sqlClient, sqlStr)
-            return { data: rows[0], error: null }
+            return { data: rows[0] || null, error: null }
+          },
+          then: async (resolve: any) => {
+            const items = Array.isArray(data) ? data : [data]
+            const cols_arr = Object.keys(items[0])
+            const vals_list = items.map((item: any) => `(${cols_arr.map((c: string) => esc(item[c])).join(", ")})`).join(", ")
+            const sqlStr = `INSERT INTO ${ident(table)} (${cols(cols_arr.join(", "))}) VALUES ${vals_list} RETURNING ${cols(cols_)}`
+            const rows = await query(sqlClient, sqlStr)
+            resolve({ data: rows, error: null })
           }
-        })
+        }),
+        then: async (resolve: any) => {
+          const items = Array.isArray(data) ? data : [data]
+          const cols_arr = Object.keys(items[0])
+          const vals_list = items.map((item: any) => `(${cols_arr.map((c: string) => esc(item[c])).join(", ")})`).join(", ")
+          const sqlStr = `INSERT INTO ${ident(table)} (${cols(cols_arr.join(", "))}) VALUES ${vals_list}`
+          await query(sqlClient, sqlStr)
+          resolve({ error: null })
+        }
       }),
       update: (data: any) => ({
         eq: (col: string, val_: string) => ({

@@ -4,8 +4,16 @@ import { scrapeProductImages } from "@/lib/scraping/image-scraper"
 import { parseSourceUrl } from "@/lib/parser"
 
 // POST /api/scrape/images
+// Authorization: Bearer <CRON_SECRET>
 // Body: { sourceUrl: string }
 export async function POST(request: Request) {
+  const authHeader = request.headers.get("authorization")
+  const token = authHeader?.replace("Bearer ", "")
+
+  if (token !== process.env.CRON_SECRET) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
   try {
     const { sourceUrl } = await request.json()
 
@@ -68,8 +76,8 @@ export async function POST(request: Request) {
             { onConflict: "product_id,url" }
           )
           stored.push(result.images[i])
-        } catch {
-          // Duplicate URL OK
+        } catch (e) {
+          console.error("Failed to upsert product image", e)
         }
       }
 

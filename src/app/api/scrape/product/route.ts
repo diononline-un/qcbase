@@ -3,8 +3,16 @@ import { createAdminClient } from "@/lib/supabase/admin"
 import { getAgent } from "@/lib/agents"
 
 // POST /api/scrape/product
+// Authorization: Bearer <CRON_SECRET>
 // Body: { sourceUrl: string, agentId?: string }
 export async function POST(request: Request) {
+  const authHeader = request.headers.get("authorization")
+  const token = authHeader?.replace("Bearer ", "")
+
+  if (token !== process.env.CRON_SECRET) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
   try {
     const { sourceUrl, agentId = "cnfans" } = await request.json()
 

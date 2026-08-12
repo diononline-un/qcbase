@@ -1,12 +1,13 @@
-import { createClient } from "@/lib/supabase/server"
+import { cookies } from "next/headers"
 import { createAdminClient } from "@/lib/supabase/admin"
+import { getUserBySessionToken } from "@/lib/auth/auth"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { redirect } from "next/navigation"
-import { ExternalLink, Plus, Search } from "lucide-react"
-import { addProduct, linkToCreator } from "@/lib/actions/products"
+import { ExternalLink, Plus, Search, Pin, PinOff, Trash2 } from "lucide-react"
+import { addProduct, linkToCreator, deleteCreatorItem, toggleCreatorItemPin } from "@/lib/actions/products"
 import { scrapeImagesAction } from "@/lib/actions/scrape-images"
 import { revalidatePath } from "next/cache"
 
@@ -15,9 +16,11 @@ export default async function LinksPage({
 }: {
   searchParams: Promise<{ q?: string }>
 }) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const cookieStore = await cookies()
+  const token = cookieStore.get("session")?.value
+  if (!token) redirect("/login")
 
+  const user = await getUserBySessionToken(token)
   if (!user) redirect("/login")
 
   const { q } = await searchParams
@@ -25,22 +28,35 @@ export default async function LinksPage({
 
   const { data: items } = await admin
     .from("creator_items")
-    .select(`
-      id, category, custom_title, is_pinned,
-      product:product_id (
-        id, source_url, platform, title, agent_cached_price, is_oos, normalized_url
-      )
-    `)
+    .select("id, category, custom_title, is_pinned, product_id")
     .eq("creator_id", user.id)
     .order("is_pinned", { ascending: false })
 
+  const productIds = [...new Set((items || []).map((i: any) => i.product_id))] as string[]
+  const productMap = new Map<string, any>()
+  if (productIds.length > 0) {
+    for (const pid of productIds) {
+      const { data: product } = await admin
+        .from("products")
+        .select("id, source_url, platform, title, agent_cached_price, is_oos, normalized_url")
+        .eq("id", pid)
+        .single()
+      if (product) productMap.set(pid, product)
+    }
+  }
+
+  const itemsWithProducts = (items || []).map((item: any) => ({
+    ...item,
+    product: productMap.get(item.product_id) || null,
+  }))
+
   const filteredItems = q
-    ? items?.filter(
+    ? itemsWithProducts.filter(
         (item: any) =>
           item.product?.title?.toLowerCase().includes(q.toLowerCase()) ||
           item.custom_title?.toLowerCase().includes(q.toLowerCase())
       )
-    : items
+    : itemsWithProducts
 
   return (
     <div className="space-y-6">
@@ -48,7 +64,7 @@ export default async function LinksPage({
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Links</h1>
           <p className="text-sm text-muted-foreground">
-            Verwalte deine Produkt-Links ({items?.length || 0})
+            Verwalte deine Produkt-Links ({itemsWithProducts.length})
           </p>
         </div>
         <AddProductForm userId={user.id} />
@@ -97,7 +113,7 @@ export default async function LinksPage({
                   </Badge>
                   {item.product?.agent_cached_price && (
                     <span className="text-xs text-muted-foreground">
-                      ~{item.product.agent_cached_price.toFixed(2)} €
+                      ~{Number(item.product.agent_cached_price).toFixed(2)} €
                     </span>
                   )}
                   {item.product?.is_oos && (
@@ -122,6 +138,28 @@ export default async function LinksPage({
                   <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
+                </Button>
+              </form>
+              <form
+                action={async () => {
+                  "use server"
+                  await toggleCreatorItemPin(item.id, item.is_pinned)
+                  revalidatePath("/links")
+                }}
+              >
+                <Button variant="ghost" size="icon" className="h-8 w-8" type="submit" title={item.is_pinned ? "Unpin" : "Pin"}>
+                  {item.is_pinned ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
+                </Button>
+              </form>
+              <form
+                action={async () => {
+                  "use server"
+                  await deleteCreatorItem(item.id)
+                  revalidatePath("/links")
+                }}
+              >
+                <Button variant="ghost" size="icon" className="h-8 w-8" type="submit" title="Löschen">
+                  <Trash2 className="h-4 w-4 text-destructive" />
                 </Button>
               </form>
             </CardContent>

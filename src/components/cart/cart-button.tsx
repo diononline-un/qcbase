@@ -97,7 +97,7 @@ export function CartButton() {
           </div>
 
           <div className="p-3">
-            <Button className="h-10 w-full gap-2 font-semibold text-xs" onClick={launchAgent}>
+            <Button className="h-10 w-full gap-2 font-semibold text-xs" onClick={() => launchAgent()}>
               <Play className="h-3 w-3" />
               Open in Agent
             </Button>
