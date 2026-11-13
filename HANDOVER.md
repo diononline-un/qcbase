@@ -78,7 +78,7 @@ STEP 5: Read AGENTS.md → Next.js 16 breaking changes
 ## Starting the App
 
 ```bash
-cd /home/diono/Projects/qcbase
+cd ./
 
 # If Docker is down:
 sudo systemctl start docker  # OR the user runs this manually

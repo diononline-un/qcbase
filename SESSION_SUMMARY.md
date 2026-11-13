@@ -99,7 +99,7 @@
 sudo systemctl start docker    # or: systemctl start docker.socket
 
 # 2. Start database
-cd /home/diono/Projects/qcbase
+cd ./
 sg docker -c "docker compose up -d"
 
 # 3. Start dev server
